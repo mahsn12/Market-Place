@@ -1,0 +1,39 @@
+<link rel="stylesheet" href="../Style/loginPage.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Page</title>
+</head>
+<body>
+
+    <div>
+        <h2>Login</h2>
+        
+        <form action="/login-handler" method="post">
+            
+            <div>
+                <label for="username">Username or Email</label><br>
+                <input type="text" id="username" name="username" required>
+            </div>
+            
+            <br>
+            
+            <div>
+                <label for="password">Password</label><br>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <br>
+            
+            <button type="submit">Log In</button>
+            
+            <br><br>
+            
+            <a href="#">Forgot password?</a>
+        </form>
+    </div>
+
+</body>
+</html>
