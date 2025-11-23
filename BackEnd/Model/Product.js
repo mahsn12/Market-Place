@@ -1,40 +1,111 @@
 import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
+const productSchema = new mongoose.Schema(
+  {
+    sellerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+
+    name: {
+      type: String,
+      required: true,
+      text: true
+    },
+
+    description: {
+      type: String,
+      required: true,
+      text: true
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+
+    // 5alet el image arrays 3ashan kaza sora
+    images: [
+      {
+        type: String,
+        required: false
+      }
+    ],
+
+    // el stock w el status fel OrderController
+    stock: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+
+    status: {
+      type: String,
+      enum: ["available", "sold"],
+      default: "available"
+    },
+
+    category: {
+      type: String,
+      required: true,
+      index: true
+    },
+
+    condition: {
+      type: String,
+      enum: ["new", "like new", "used", "refurbished"],
+      default: "used"
+    },
+
+    // search bs bl location
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point"
+      },
+      coordinates: {
+        type: [Number], // [lng, lat]
+        default: undefined
+      }
+    },
+
+    // stats w keda 
+    views: {
+      type: Number,
+      default: 0
+    },
+
+    savedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      }
+    ],
+
+    reports: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        reason: String,
+        date: { type: Date, default: Date.now }
+      }
+    ],
+
+    boostedUntil: {
+      type: Date,
+      default: null
+    }
   },
-  description: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  image: {
-    type: String,
-    default: "https://via.placeholder.com/200" 
-  },
-  amountInStock: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  sellerId: {
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User" ,
-    required: true
-  },
-  category: {
-    type: String,
-    enum: ["Electronics", "Clothing", "Books", "Furniture", "Food", "Other"], 
-    required: true
-  }
-});
+  { timestamps: true }
+);
+
+// mn chatgpt bs azon bta3t search fel name w description
+productSchema.index({ name: "text", description: "text" });
+
+// mnn brdo chatgpt bta3et location
+productSchema.index({ location: "2dsphere" });
 
 const Product = mongoose.model("Product", productSchema);
-
 export default Product;
