@@ -21,11 +21,11 @@ export default function SellerDashboard() {
     setLoading(true);
     try {
       const storedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-      
+
       // Calculate metrics from real orders
       const totalRevenue = storedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
       const processingCount = storedOrders.filter(o => o.status === 'Processing').length;
-      
+
       setOrders(storedOrders);
       setMetrics({
         revenue: totalRevenue,
@@ -43,7 +43,7 @@ export default function SellerDashboard() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      const updatedOrders = orders.map(order => 
+      const updatedOrders = orders.map(order =>
         order._id === orderId ? { ...order, status: newStatus } : order
       );
       setOrders(updatedOrders);
@@ -87,8 +87,8 @@ export default function SellerDashboard() {
                   <div className="order-info">
                     <div className="order-id">{order._id}</div>
                     <div className="order-items">
-                      {order.items?.length > 0 
-                        ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}: ${order.items.map(i => i.name || i.title || 'Product').join(', ')}` 
+                      {order.items?.length > 0
+                        ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}: ${order.items.map(i => i.name || i.title || 'Product').join(', ')}`
                         : 'No items'}
                     </div>
                     <div className="order-date">{formatDate(order.createdAt)}</div>

@@ -136,7 +136,7 @@ export default function HomePage({ onNavigate }) {
                   </div>
                   <div className="product-footer">
                     <span className="price">${product.price.toFixed(2)}</span>
-                    <button 
+                    <button
                       className="btn-add-to-cart"
                       onClick={() => addToCart(product)}
                     >

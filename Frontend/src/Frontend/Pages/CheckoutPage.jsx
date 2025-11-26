@@ -28,7 +28,7 @@ export default function CheckoutPage() {
     const newShipping = newSubtotal > 0 ? 10 : 0;
     const newTax = newSubtotal * 0.1;
     const newTotal = newSubtotal + newShipping + newTax;
-    
+
     setSubtotal(newSubtotal);
     setShipping(newShipping);
     setTax(newTax);
@@ -68,7 +68,7 @@ export default function CheckoutPage() {
   const placeOrder = async () => {
     try {
       setLoading(true);
-      
+
       // Create order object
       const order = {
         _id: `order_${Date.now()}`,
@@ -129,8 +129,8 @@ export default function CheckoutPage() {
               {cart.map(item => (
                 <div key={item.id} className="product-row-card">
                   <div className="product-image">
-                    <img 
-                      src={item.image || 'https://via.placeholder.com/150'} 
+                    <img
+                      src={item.image || 'https://via.placeholder.com/150'}
                       alt={item.name}
                     />
                   </div>
@@ -140,7 +140,7 @@ export default function CheckoutPage() {
                         <h5 className="product-name">{item.name || 'Product'}</h5>
                         <p className="product-color">{item.seller || 'Unknown Seller'}</p>
                       </div>
-                      <button 
+                      <button
                         onClick={() => handleRemove(item.id)}
                         className="product-remove-btn"
                         title="Remove item"
@@ -151,18 +151,18 @@ export default function CheckoutPage() {
                     <div className="product-footer">
                       <p className="product-price">${(item.price || 0).toFixed(2)}</p>
                       <div className="number-input">
-                        <button 
+                        <button
                           type="button"
                           className="minus"
                           onClick={() => handleQtyDecrease(item.id)}
                         ></button>
-                        <input 
-                          type="number" 
-                          min="1" 
+                        <input
+                          type="number"
+                          min="1"
                           value={item.qty || 1}
                           onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
                         />
-                        <button 
+                        <button
                           type="button"
                           className="plus"
                           onClick={() => handleQtyIncrease(item.id)}
@@ -178,9 +178,9 @@ export default function CheckoutPage() {
           {cart.length > 0 && (
             <div className="order-note-section">
               <label>Order notes (optional)</label>
-              <textarea 
-                value={note} 
-                onChange={(e)=>setNote(e.target.value)} 
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
                 placeholder="Add delivery instructions or special requests..."
               />
             </div>
@@ -189,7 +189,7 @@ export default function CheckoutPage() {
 
         <aside className="checkout-summary">
           <h3>Payment</h3>
-          
+
           {cart.length > 0 && (
             <div className="order-totals">
               <div className="total-row">
@@ -214,44 +214,44 @@ export default function CheckoutPage() {
           <form className="payment-form">
             <div className="form-group">
               <label>Card number</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="1234 5678 9012 3457"
                 maxLength="19"
                 value={cardData.cardNumber}
-                onChange={(e) => setCardData({...cardData, cardNumber: e.target.value})}
+                onChange={(e) => setCardData({ ...cardData, cardNumber: e.target.value })}
               />
             </div>
 
             <div className="form-group">
               <label>Name on card</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="John Smith"
                 value={cardData.cardName}
-                onChange={(e) => setCardData({...cardData, cardName: e.target.value})}
+                onChange={(e) => setCardData({ ...cardData, cardName: e.target.value })}
               />
             </div>
 
             <div className="form-row">
               <div className="form-group">
                 <label>Expiration</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="MM/YYYY"
                   maxLength="7"
                   value={cardData.expiration}
-                  onChange={(e) => setCardData({...cardData, expiration: e.target.value})}
+                  onChange={(e) => setCardData({ ...cardData, expiration: e.target.value })}
                 />
               </div>
               <div className="form-group">
                 <label>CVV</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder="•••"
                   maxLength="3"
                   value={cardData.cvv}
-                  onChange={(e) => setCardData({...cardData, cvv: e.target.value})}
+                  onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
                 />
               </div>
             </div>
@@ -260,16 +260,16 @@ export default function CheckoutPage() {
               By completing this purchase, you agree to our terms and conditions.
             </p>
 
-            <button 
+            <button
               type="button"
-              onClick={placeOrder} 
-              disabled={cart.length===0 || loading} 
+              onClick={placeOrder}
+              disabled={cart.length === 0 || loading}
               className="btn-primary"
             >
               {loading ? 'Processing...' : 'Buy Now'}
             </button>
 
-            <button 
+            <button
               type="button"
               className="btn-secondary"
             >

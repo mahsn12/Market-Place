@@ -32,7 +32,7 @@ export default function OrdersPage() {
   };
 
   const getStatusColor = (status) => {
-    switch(status) {
+    switch (status) {
       case 'Processing': return '#ff9800';
       case 'Shipped': return '#2196f3';
       case 'Delivered': return '#4caf50';
@@ -55,8 +55,8 @@ export default function OrdersPage() {
         ) : (
           <div className="orders-list">
             {orders.map(order => (
-              <div 
-                key={order._id} 
+              <div
+                key={order._id}
                 className={`order-card ${selected?._id === order._id ? 'active' : ''}`}
                 onClick={() => setSelected(selected?._id === order._id ? null : order)}
               >
