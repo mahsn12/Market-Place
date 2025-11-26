@@ -1,0 +1,17 @@
+{
+  "name": "project-root",
+  "private": true,
+  "workspaces": ["BackEnd", "Frontend"],
+  "scripts": {
+    "install-all": "npm install",
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cd BackEnd && nodemon server.js",
+    "dev:frontend": "cd Frontend && npm run dev",
+    "start": "node BackEnd/server.js",
+    "build": "cd Frontend && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "nodemon": "^2.0.22"
+  }
+}
