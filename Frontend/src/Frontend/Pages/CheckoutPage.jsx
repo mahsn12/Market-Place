@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import ProductRow from '../components/ProductRow';
+import PageLayout from '../components/PageLayout';
 import '../Style/CheckoutPage.css';
 
 export default function CheckoutPage() {
@@ -12,9 +10,14 @@ export default function CheckoutPage() {
   const [shipping, setShipping] = useState(0);
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
+  const [cardData, setCardData] = useState({
+    cardNumber: '',
+    cardName: '',
+    expiration: '',
+    cvv: ''
+  });
 
   useEffect(() => {
-    // Load cart from localStorage or API
     const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
     setCart(savedCart);
     calculateTotals(savedCart);
@@ -34,11 +37,25 @@ export default function CheckoutPage() {
 
   const handleQtyChange = (itemId, newQty) => {
     const updated = cart.map(item =>
-      item.id === itemId ? { ...item, qty: newQty } : item
+      item.id === itemId ? { ...item, qty: Math.max(1, newQty) } : item
     );
     setCart(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
     calculateTotals(updated);
+  };
+
+  const handleQtyIncrease = (itemId) => {
+    const item = cart.find(i => i.id === itemId);
+    if (item) {
+      handleQtyChange(itemId, (item.qty || 1) + 1);
+    }
+  };
+
+  const handleQtyDecrease = (itemId) => {
+    const item = cart.find(i => i.id === itemId);
+    if (item && (item.qty || 1) > 1) {
+      handleQtyChange(itemId, (item.qty || 1) - 1);
+    }
   };
 
   const handleRemove = (itemId) => {
@@ -51,22 +68,43 @@ export default function CheckoutPage() {
   const placeOrder = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: cart,
-          note: note,
-          total: total
-        })
-      });
       
-      if (response.ok) {
-        alert('Order placed successfully');
-        setCart([]);
-        setNote('');
-        localStorage.removeItem('cart');
+      // Create order object
+      const order = {
+        _id: `order_${Date.now()}`,
+        items: cart,
+        note: note,
+        subtotal: subtotal,
+        shipping: shipping,
+        tax: tax,
+        total: total,
+        status: 'Processing',
+        createdAt: new Date().toISOString(),
+        cardLast4: cardData.cardNumber.slice(-4)
+      };
+
+      // Save to localStorage
+      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
+      existingOrders.push(order);
+      localStorage.setItem('orders', JSON.stringify(existingOrders));
+
+      // Try to send to backend if available
+      try {
+        await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(order)
+        });
+      } catch (e) {
+        console.log('Backend unavailable, order saved to local storage');
       }
+
+      alert('Order placed successfully!');
+      setCart([]);
+      setNote('');
+      setCardData({ cardNumber: '', cardName: '', expiration: '', cvv: '' });
+      localStorage.removeItem('cart');
+      calculateTotals([]);
     } catch (e) {
       console.error(e);
       alert('Failed to place order');
@@ -76,57 +114,174 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="checkout-page">
-      <Navbar />
-      <main className="checkout-main">
+    <PageLayout title="Your Cart">
+      <div className="checkout-content shopping-cart">
         <section className="checkout-items">
-          <h2>Checkout</h2>
-
+          <h2 className="checkout-heading">Your Products</h2>
           {cart.length === 0 ? (
-            <div className="empty-state">Your cart is empty.</div>
+            <div className="empty-checkout">
+              <div className="empty-icon">🛍️</div>
+              <h3>Your cart is empty</h3>
+              <p>Add items from the marketplace to get started</p>
+            </div>
           ) : (
             <div className="items-list">
               {cart.map(item => (
-                <ProductRow key={item.id} item={item} onQtyChange={handleQtyChange} onRemove={handleRemove} />
+                <div key={item.id} className="product-row-card">
+                  <div className="product-image">
+                    <img 
+                      src={item.image || 'https://via.placeholder.com/150'} 
+                      alt={item.name}
+                    />
+                  </div>
+                  <div className="product-details">
+                    <div className="product-header">
+                      <div>
+                        <h5 className="product-name">{item.name || 'Product'}</h5>
+                        <p className="product-color">{item.seller || 'Unknown Seller'}</p>
+                      </div>
+                      <button 
+                        onClick={() => handleRemove(item.id)}
+                        className="product-remove-btn"
+                        title="Remove item"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="product-footer">
+                      <p className="product-price">${(item.price || 0).toFixed(2)}</p>
+                      <div className="number-input">
+                        <button 
+                          type="button"
+                          className="minus"
+                          onClick={() => handleQtyDecrease(item.id)}
+                        ></button>
+                        <input 
+                          type="number" 
+                          min="1" 
+                          value={item.qty || 1}
+                          onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
+                        />
+                        <button 
+                          type="button"
+                          className="plus"
+                          onClick={() => handleQtyIncrease(item.id)}
+                        ></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           )}
 
-          <div className="order-note-section">
-            <label>Order note</label>
-            <textarea value={note} onChange={(e)=>setNote(e.target.value)} placeholder="E.g. Leave at the back door"></textarea>
-          </div>
+          {cart.length > 0 && (
+            <div className="order-note-section">
+              <label>Order notes (optional)</label>
+              <textarea 
+                value={note} 
+                onChange={(e)=>setNote(e.target.value)} 
+                placeholder="Add delivery instructions or special requests..."
+              />
+            </div>
+          )}
         </section>
 
         <aside className="checkout-summary">
-          <div className="summary-box">
-            <div className="summary-row">
-              <div>Subtotal</div>
-              <div>${subtotal.toFixed(2)}</div>
+          <h3>Payment</h3>
+          
+          {cart.length > 0 && (
+            <div className="order-totals">
+              <div className="total-row">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="total-row">
+                <span>Shipping:</span>
+                <span>${shipping.toFixed(2)}</span>
+              </div>
+              <div className="total-row">
+                <span>Tax (10%):</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              <div className="total-row total-final">
+                <span>Total:</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
             </div>
-            <div className="summary-row">
-              <div>Shipping</div>
-              <div>${shipping.toFixed(2)}</div>
-            </div>
-            <div className="summary-row">
-              <div>Tax</div>
-              <div>${tax.toFixed(2)}</div>
-            </div>
-            <div className="summary-total">
-              <div>Total</div>
-              <div>${total.toFixed(2)}</div>
-            </div>
-          </div>
+          )}
 
-          <div className="checkout-actions">
-            <button onClick={placeOrder} disabled={cart.length===0 || loading} className="btn-primary">
-              {loading ? 'Placing...' : 'Place order'}
+          <form className="payment-form">
+            <div className="form-group">
+              <label>Card number</label>
+              <input 
+                type="text" 
+                placeholder="1234 5678 9012 3457"
+                maxLength="19"
+                value={cardData.cardNumber}
+                onChange={(e) => setCardData({...cardData, cardNumber: e.target.value})}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Name on card</label>
+              <input 
+                type="text" 
+                placeholder="John Smith"
+                value={cardData.cardName}
+                onChange={(e) => setCardData({...cardData, cardName: e.target.value})}
+              />
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Expiration</label>
+                <input 
+                  type="text" 
+                  placeholder="MM/YYYY"
+                  maxLength="7"
+                  value={cardData.expiration}
+                  onChange={(e) => setCardData({...cardData, expiration: e.target.value})}
+                />
+              </div>
+              <div className="form-group">
+                <label>CVV</label>
+                <input 
+                  type="text" 
+                  placeholder="•••"
+                  maxLength="3"
+                  value={cardData.cvv}
+                  onChange={(e) => setCardData({...cardData, cvv: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <p className="form-disclaimer">
+              By completing this purchase, you agree to our terms and conditions.
+            </p>
+
+            <button 
+              type="button"
+              onClick={placeOrder} 
+              disabled={cart.length===0 || loading} 
+              className="btn-primary"
+            >
+              {loading ? 'Processing...' : 'Buy Now'}
             </button>
-            <button className="btn-secondary">Pay with card</button>
-          </div>
+
+            <button 
+              type="button"
+              className="btn-secondary"
+            >
+              💳 Pay with Card
+            </button>
+
+            <div className="back-to-shopping">
+              <a href="#back">← Back to shopping</a>
+            </div>
+          </form>
         </aside>
-      </main>
-      <Footer />
-    </div>
+      </div>
+    </PageLayout>
   );
 }

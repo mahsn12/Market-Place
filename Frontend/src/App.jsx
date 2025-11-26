@@ -1,37 +1,55 @@
 import React, { useState } from 'react'
+import HomePage from './Frontend/Pages/HomePage'
 import CheckoutPage from './Frontend/Pages/CheckoutPage'
 import OrdersPage from './Frontend/Pages/OrdersPage'
 import SellerDashboard from './Frontend/Pages/SellerDashboard'
 import './App.css'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('checkout')
+  const [currentPage, setCurrentPage] = useState('home')
+
+  const handleNavigation = (page) => {
+    setCurrentPage(page)
+    window.scrollTo(0, 0)
+  }
 
   return (
     <div className="app-container">
-      <nav className="app-nav">
-        <div className="nav-buttons">
-          <button
-            onClick={() => setCurrentPage('checkout')}
-            className={currentPage === 'checkout' ? 'nav-btn active' : 'nav-btn'}
-          >
-            Checkout
-          </button>
-          <button
-            onClick={() => setCurrentPage('orders')}
-            className={currentPage === 'orders' ? 'nav-btn active' : 'nav-btn'}
-          >
-            Orders
-          </button>
-          <button
-            onClick={() => setCurrentPage('seller')}
-            className={currentPage === 'seller' ? 'nav-btn active' : 'nav-btn'}
-          >
-            Seller Dashboard
-          </button>
+      <header className="app-header">
+        <div className="header-content">
+          <div className="logo" onClick={() => handleNavigation('home')}>
+            Marketplace
+          </div>
+          <nav className="header-nav">
+            <button
+              onClick={() => handleNavigation('home')}
+              className={currentPage === 'home' ? 'nav-link active' : 'nav-link'}
+            >
+              Browse
+            </button>
+            <button
+              onClick={() => handleNavigation('checkout')}
+              className={currentPage === 'checkout' ? 'nav-link active' : 'nav-link'}
+            >
+              Cart
+            </button>
+            <button
+              onClick={() => handleNavigation('orders')}
+              className={currentPage === 'orders' ? 'nav-link active' : 'nav-link'}
+            >
+              Orders
+            </button>
+            <button
+              onClick={() => handleNavigation('seller')}
+              className={currentPage === 'seller' ? 'nav-link active' : 'nav-link'}
+            >
+              Sell
+            </button>
+          </nav>
         </div>
-      </nav>
+      </header>
 
+      {currentPage === 'home' && <HomePage onNavigate={handleNavigation} />}
       {currentPage === 'checkout' && <CheckoutPage />}
       {currentPage === 'orders' && <OrdersPage />}
       {currentPage === 'seller' && <SellerDashboard />}
