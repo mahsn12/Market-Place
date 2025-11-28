@@ -112,7 +112,9 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
-
+ const handleBackToShopping = () => {
+  onNavigate('/Frontend/Pages/HomePage');  // This already goes to home page
+};
   return (
     <PageLayout title="Your Cart">
       <div className="checkout-content shopping-cart">
@@ -277,8 +279,16 @@ export default function CheckoutPage() {
             </button>
 
             <div className="back-to-shopping">
-              <a href="#back">← Back to shopping</a>
-            </div>
+          <a 
+            
+            onClick={(e) => {
+              e.preventDefault();
+              handleBackToShopping();  // This calls onNavigate('home')
+            }}
+            >
+            ← Back to shopping
+          </a>
+        </div>
           </form>
         </aside>
       </div>

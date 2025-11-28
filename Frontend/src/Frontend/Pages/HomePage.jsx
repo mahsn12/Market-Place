@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import '../Style/HomePage.css';
 
-export default function HomePage({ onNavigate }) {
+export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user }) {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -41,6 +41,17 @@ export default function HomePage({ onNavigate }) {
   }, [searchQuery, selectedCategory, products]);
 
   const addToCart = (product) => {
+    if (!isLoggedIn) {
+      onStartShopping(); // Redirect to login if not logged in
+      return;
+    }
+
+    // Only buyers can add to cart
+    if (user?.userType !== 'buyer') {
+      alert('Sellers cannot add items to cart. Switch to buyer account to shop.');
+      return;
+    }
+
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existingItem = cart.find(item => item.id === product.id);
 
@@ -53,6 +64,17 @@ export default function HomePage({ onNavigate }) {
     localStorage.setItem('cart', JSON.stringify(cart));
     alert(`${product.name} added to cart!`);
     onNavigate('checkout');
+  };
+
+  const handleStartShoppingClick = () => {
+    if (!isLoggedIn) {
+      onStartShopping(); // Go to login
+    } else if (user?.userType === 'seller') {
+      alert('You are logged in as a seller. Switch to buyer account to shop.');
+    } else {
+      // Already logged in as buyer, focus on search
+      document.querySelector('.search-container')?.focus();
+    }
   };
 
   const categories = ['all', 'electronics', 'furniture', 'fashion'];
@@ -70,9 +92,17 @@ export default function HomePage({ onNavigate }) {
             Discover thousands of products from trusted sellers. Fast, secure, and reliable.
           </p>
           <div className="hero-cta">
-            <button className="btn-primary btn-lg" onClick={() => document.querySelector('.search-container').focus()}>
-              Start Shopping
+            <button 
+              className="btn-primary btn-lg" 
+              onClick={handleStartShoppingClick}
+            >
+              {isLoggedIn ? 'Continue Shopping' : 'Start Shopping'}
             </button>
+            {isLoggedIn && user?.userType === 'seller' && (
+              <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.875rem' }}>
+                You are in seller mode. Switch to buyer account to shop.
+              </p>
+            )}
           </div>
         </div>
         <div className="hero-visual">
@@ -82,37 +112,44 @@ export default function HomePage({ onNavigate }) {
         </div>
       </section>
 
-      {/* Search & Filter Section */}
-      <section className="search-section">
-        <div className="search-wrapper">
-          <input
-            type="text"
-            className="search-container"
-            placeholder="Search for products, sellers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <span className="search-icon">🔍</span>
-        </div>
+      {/* Search & Filter Section - Only show if logged in as buyer or not logged in */}
+      {(isLoggedIn && user?.userType === 'buyer') && (
+        <section className="search-section">
+          <div className="search-wrapper">
+            <input
+              type="text"
+              className="search-container"
+              placeholder="Search for products, sellers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <span className="search-icon">🔍</span>
+          </div>
 
-        <div className="categories">
-          {categories.map(category => (
-            <button
-              key={category}
-              className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(category)}
-            >
-              {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className="categories">
+            {categories.map(category => (
+              <button
+                key={category}
+                className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(category)}
+              >
+                {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* Products Grid */}
+      {/* Products Grid - Show to everyone, but only buyers can add to cart */}
       <section className="products-section">
         <div className="products-header">
           <h2>{selectedCategory === 'all' ? 'Featured Products' : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`}</h2>
-          <p className="product-count">{filteredProducts.length} products</p>
+          {!isLoggedIn && (
+            <p className="product-notice">Login to start shopping!</p>
+          )}
+          {isLoggedIn && user?.userType === 'seller' && (
+            <p className="product-notice">Switch to buyer account to shop</p>
+          )}
         </div>
 
         {filteredProducts.length === 0 ? (
@@ -139,8 +176,10 @@ export default function HomePage({ onNavigate }) {
                     <button
                       className="btn-add-to-cart"
                       onClick={() => addToCart(product)}
+                      disabled={isLoggedIn && user?.userType === 'seller'}
                     >
-                      Add
+                      {!isLoggedIn ? 'Login to Buy' : 
+                       user?.userType === 'seller' ? 'Seller Mode' : 'Add'}
                     </button>
                   </div>
                 </div>

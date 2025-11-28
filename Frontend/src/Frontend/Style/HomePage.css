@@ -454,3 +454,22 @@
     font-size: 0.85rem;
   }
 }
+/* Add to HomePage.css */
+.product-notice {
+  color: #667eea;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.btn-add-to-cart:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-add-to-cart:disabled:hover {
+  background-color: #9ca3af;
+  transform: none;
+  box-shadow: none;
+}
