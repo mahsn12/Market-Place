@@ -10,4 +10,5 @@ router.get("/get/:id",GetUser);
 router.get("/getAll",getAllUsers);
 router.put("/update/:id",UpdateUser);
 
+
 export default router;

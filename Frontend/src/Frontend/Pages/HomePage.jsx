@@ -1,59 +1,68 @@
-import React, { useState, useEffect } from 'react';
-import '../Style/HomePage.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "../Style/HomePage.css";
 
-export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user }) {
+export default function HomePage({ onStartShopping, isLoggedIn, user }) {
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [loading, setLoading] = useState(true);
 
+  // ✅ Load products from database
   useEffect(() => {
-    // Load mock products
-    const mockProducts = [
-      { id: 1, name: 'Wireless Headphones', category: 'electronics', price: 79.99, seller: 'Tech Store', rating: 4.5, image: '🎧' },
-      { id: 2, name: 'Vintage Coffee Table', category: 'furniture', price: 149.99, seller: 'Home Decor', rating: 4.8, image: '🪑' },
-      { id: 3, name: 'Running Shoes', category: 'fashion', price: 89.99, seller: 'Sport Pro', rating: 4.6, image: '👟' },
-      { id: 4, name: 'Smartphone Case', category: 'electronics', price: 19.99, seller: 'Mobile Gear', rating: 4.3, image: '📱' },
-      { id: 5, name: 'Leather Wallet', category: 'fashion', price: 45.99, seller: 'Fashion Hub', rating: 4.7, image: '👜' },
-      { id: 6, name: 'Desk Lamp', category: 'furniture', price: 34.99, seller: 'Lighting Co', rating: 4.4, image: '💡' },
-      { id: 7, name: 'Bluetooth Speaker', category: 'electronics', price: 59.99, seller: 'Audio Pro', rating: 4.8, image: '🔊' },
-      { id: 8, name: 'Winter Jacket', category: 'fashion', price: 129.99, seller: 'Fashion Hub', rating: 4.5, image: '🧥' },
-    ];
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("http://localhost:5200/api/products");
+        const data = await res.json();
+        console.log("Fetched products:", data); 
+        setProducts(data.result || []);
+        setFilteredProducts(data.result || []);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
   }, []);
 
+  // ✅ Filtering & searching
   useEffect(() => {
-    let filtered = products;
+    let filtered = [...products];
 
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.category === selectedCategory);
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter((p) => p.category === selectedCategory);
     }
 
     if (searchQuery) {
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.seller.toLowerCase().includes(searchQuery.toLowerCase())
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.sellerId?.name || "")
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
       );
     }
 
     setFilteredProducts(filtered);
   }, [searchQuery, selectedCategory, products]);
 
+  // ✅ Add to cart (same logic)
   const addToCart = (product) => {
     if (!isLoggedIn) {
-      onStartShopping(); // Redirect to login if not logged in
+      onStartShopping();
       return;
     }
 
-    // Only buyers can add to cart
-    if (user?.userType !== 'buyer') {
-      alert('Sellers cannot add items to cart. Switch to buyer account to shop.');
+    if (user?.userType !== "buyer") {
+      alert("Sellers cannot add items to cart. Switch to buyer account to shop.");
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItem = cart.find(item => item.id === product.id);
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const existingItem = cart.find((item) => item._id === product._id);
 
     if (existingItem) {
       existingItem.qty += 1;
@@ -61,23 +70,22 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
       cart.push({ ...product, qty: 1 });
     }
 
-    localStorage.setItem('cart', JSON.stringify(cart));
+    localStorage.setItem("cart", JSON.stringify(cart));
     alert(`${product.name} added to cart!`);
-    onNavigate('checkout');
+    navigate("/checkout");
   };
 
   const handleStartShoppingClick = () => {
     if (!isLoggedIn) {
-      onStartShopping(); // Go to login
-    } else if (user?.userType === 'seller') {
-      alert('You are logged in as a seller. Switch to buyer account to shop.');
+      onStartShopping();
+    } else if (user?.userType === "seller") {
+      alert("You are logged in as a seller. Switch to buyer account to shop.");
     } else {
-      // Already logged in as buyer, focus on search
-      document.querySelector('.search-container')?.focus();
+      document.querySelector(".search-container")?.focus();
     }
   };
 
-  const categories = ['all', 'electronics', 'furniture', 'fashion'];
+  const categories = ["all", "electronics", "furniture", "fashion"];
 
   return (
     <div className="home-page">
@@ -85,21 +93,19 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
       <section className="hero">
         <div className="hero-content">
           <h1 className="hero-title">
-            Find anything you want.<br />
+            Find anything you want.
+            <br />
             <span className="gradient-text">Buy it instantly.</span>
           </h1>
           <p className="hero-description">
             Discover thousands of products from trusted sellers. Fast, secure, and reliable.
           </p>
           <div className="hero-cta">
-            <button 
-              className="btn-primary btn-lg" 
-              onClick={handleStartShoppingClick}
-            >
-              {isLoggedIn ? 'Continue Shopping' : 'Start Shopping'}
+            <button className="btn-primary btn-lg" onClick={handleStartShoppingClick}>
+              {isLoggedIn ? "Continue Shopping" : "Start Shopping"}
             </button>
-            {isLoggedIn && user?.userType === 'seller' && (
-              <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.875rem' }}>
+            {isLoggedIn && user?.userType === "seller" && (
+              <p style={{ marginTop: "1rem", color: "#666", fontSize: "0.875rem" }}>
                 You are in seller mode. Switch to buyer account to shop.
               </p>
             )}
@@ -112,8 +118,8 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
         </div>
       </section>
 
-      {/* Search & Filter Section - Only show if logged in as buyer or not logged in */}
-      {(isLoggedIn && user?.userType === 'buyer') && (
+      {/* Search Section */}
+      {(isLoggedIn && user?.userType === "buyer") && (
         <section className="search-section">
           <div className="search-wrapper">
             <input
@@ -127,32 +133,44 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
           </div>
 
           <div className="categories">
-            {categories.map(category => (
+            {categories.map((category) => (
               <button
                 key={category}
-                className={`category-pill ${selectedCategory === category ? 'active' : ''}`}
+                className={`category-pill ${
+                  selectedCategory === category ? "active" : ""
+                }`}
                 onClick={() => setSelectedCategory(category)}
               >
-                {category === 'all' ? 'All' : category.charAt(0).toUpperCase() + category.slice(1)}
+                {category === "all"
+                  ? "All"
+                  : category.charAt(0).toUpperCase() + category.slice(1)}
               </button>
             ))}
           </div>
         </section>
       )}
 
-      {/* Products Grid - Show to everyone, but only buyers can add to cart */}
+      {/* Products Section */}
       <section className="products-section">
         <div className="products-header">
-          <h2>{selectedCategory === 'all' ? 'Featured Products' : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`}</h2>
-          {!isLoggedIn && (
-            <p className="product-notice">Login to start shopping!</p>
-          )}
-          {isLoggedIn && user?.userType === 'seller' && (
+          <h2>
+            {selectedCategory === "all"
+              ? "Featured Products"
+              : selectedCategory.charAt(0).toUpperCase() +
+                selectedCategory.slice(1)}
+          </h2>
+          {!isLoggedIn && <p className="product-notice">Login to start shopping!</p>}
+          {isLoggedIn && user?.userType === "seller" && (
             <p className="product-notice">Switch to buyer account to shop</p>
           )}
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {loading ? (
+          <div className="empty-state">
+            <div className="empty-icon">⏳</div>
+            <h3>Loading products...</h3>
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">🔍</div>
             <h3>No products found</h3>
@@ -160,26 +178,45 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
           </div>
         ) : (
           <div className="products-grid">
-            {filteredProducts.map(product => (
-              <div key={product.id} className="product-card">
+            {filteredProducts.map((product) => (
+              <div
+                key={product._id}
+                className="product-card"
+                onClick={() => navigate(`/product/${product._id}`)} // ✅ Go to ProductPage
+              >
                 <div className="product-image">
-                  <span className="product-emoji">{product.image}</span>
+                  {product.images && product.images[0] ? (
+                    <img
+                      src={product.images[0]}
+                      alt={product.name}
+                      className="product-emoji"
+                      style={{ width: "100%", borderRadius: "0.75rem" }}
+                    />
+                  ) : (
+                    <span className="product-emoji">🛍️</span>
+                  )}
                 </div>
                 <div className="product-content">
                   <h3 className="product-name">{product.name}</h3>
                   <div className="product-meta">
-                    <span className="seller">{product.seller}</span>
-                    <span className="rating">⭐ {product.rating}</span>
+                    <span className="seller">{product.sellerId?.name || "Seller"}</span>
+                    <span className="rating">⭐ {product.rating || 4.5}</span>
                   </div>
                   <div className="product-footer">
-                    <span className="price">${product.price.toFixed(2)}</span>
+                    <span className="price">${product.price?.toFixed(2)}</span>
                     <button
                       className="btn-add-to-cart"
-                      onClick={() => addToCart(product)}
-                      disabled={isLoggedIn && user?.userType === 'seller'}
+                      onClick={(e) => {
+                        e.stopPropagation(); // prevent click from opening ProductPage
+                        addToCart(product);
+                      }}
+                      disabled={isLoggedIn && user?.userType === "seller"}
                     >
-                      {!isLoggedIn ? 'Login to Buy' : 
-                       user?.userType === 'seller' ? 'Seller Mode' : 'Add'}
+                      {!isLoggedIn
+                        ? "Login to Buy"
+                        : user?.userType === "seller"
+                        ? "Seller Mode"
+                        : "Add"}
                     </button>
                   </div>
                 </div>

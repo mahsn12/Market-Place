@@ -84,7 +84,14 @@ const productSchema = new mongoose.Schema(
         ref: "User"
       }
     ],
-
+    reviews: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      comment: String,
+      date: { type: Date, default: Date.now }
+    }
+    ],
+    
     reports: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

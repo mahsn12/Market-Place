@@ -1,0 +1,31 @@
+.form-page {
+  display: flex;
+  justify-content: center;
+  padding-top: 40px;
+}
+
+.form-card {
+  background: #fff;
+  padding: 25px;
+  border-radius: 12px;
+  width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+}
+
+.form-card input,
+.form-card textarea {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.form-card textarea {
+  min-height: 100px;
+}
+
+.form-card h2 {
+  margin-bottom: 10px;
+}
