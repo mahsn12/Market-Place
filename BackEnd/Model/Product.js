@@ -71,7 +71,10 @@ const productSchema = new mongoose.Schema(
         default: undefined
       }
     },
-
+    lastModfied:{
+      type:Date,
+      default:Date.now
+    },
     // stats w keda 
     views: {
       type: Number,
@@ -80,7 +83,7 @@ const productSchema = new mongoose.Schema(
 
     savedBy: [
       {
-        type: mongoose.Schema.Types.ObjectId,
+        type : mongoose.Schema.Types.ObjectId,
         ref: "User"
       }
     ],
