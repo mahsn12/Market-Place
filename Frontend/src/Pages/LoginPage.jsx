@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
 import '../Style/LoginPage.css';
+import { loginUser } from '../apis/Userapi';
 
 function MarketplaceLogin({ onNavigate, onLogin }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    userType: 'buyer' // Add user type to login
   });
 
   const handleChange = (e) => {
@@ -17,14 +17,24 @@ function MarketplaceLogin({ onNavigate, onLogin }) {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (onLogin) {
-      onLogin(formData);
-    }
-    alert(`Login successful! Welcome ${formData.userType === 'seller' ? 'Seller' : 'Buyer'}!`);
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
+  try {
+    const res = await loginUser({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    onLogin(res.user);
+    localStorage.setItem("token", res.token);
+
+    alert("Login successful!");
+    if (onNavigate) onNavigate("home");
+  } catch (err) {
+    alert("Login failed: " + err.message);
+  }
+};
   const handleSignUpClick = () => {
     onNavigate('register');
   };
@@ -40,7 +50,6 @@ function MarketplaceLogin({ onNavigate, onLogin }) {
         <form onSubmit={handleSubmit} className="login-form">
           {/* User Type Selection */}
           <div className="input-group">
-            <label>I am a:</label>
             <div className="user-type-selector">
               <label className="radio-option">
                 <input

@@ -19,11 +19,6 @@ const userSchema = new mongoose.Schema(
       minlength: 8
     },
 
-    role: {
-      type: String,
-      enum: ["Buyer", "Seller", "Admin"],
-      default: "Buyer"
-    },
 
     profileImage: {
       type: String,

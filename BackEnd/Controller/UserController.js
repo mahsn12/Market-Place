@@ -8,27 +8,23 @@ dotenv.config();
 
 export const registerUser = async (request, response) => {
   try {
-    const { name, email, password, role, phone } = request.body;
+    const { name, email, password, phone } = request.body;
 
-    // Validate required fields
     if (!name || !email || !password) {
       return response.status(400).json({ message: "Missing required fields" });
     }
 
-    // Check if email already exists
     const existUser = await User.findOne({ email });
     if (existUser) {
       return response.status(400).json({ message: "Email already exists" });
     }
 
-    // Hash password
     const hashedPass = await bcrypt.hash(password, 10);
 
     const user = new User({
       name,
       email,
       password: hashedPass,
-      role,
       phone
     });
 
@@ -48,6 +44,7 @@ export const registerUser = async (request, response) => {
     });
   }
 };
+
 
 
 export const getAllUsers = async (request, response) => {
@@ -207,7 +204,6 @@ export const loginUser = async (req, res) => {
         name: userFound.name,
         email: userFound.email,
         profileImage: userFound.profileImage,
-        role: userFound.role,
         phone: userFound.phone,
         verified: userFound.verified,
         rating: userFound.rating,

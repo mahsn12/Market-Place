@@ -3,7 +3,6 @@ import '../Style/HomePage.css';
 
 export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user }) {
   const [products, setProducts] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
@@ -81,6 +80,13 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
 
   return (
     <div className="home-page">
+      <HomeTopNav
+      isLoggedIn={isLoggedIn}
+      onNavigate={onNavigate}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      user={user}
+      />
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">

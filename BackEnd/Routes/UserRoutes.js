@@ -19,8 +19,8 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 
 // GET ALL USERS
-router.get("/all", authMiddleware, getAllUsers);
-
+router.get("/all", authMiddleware , getAllUsers);
+     
 // GET ONE USER
 router.get("/profile/:id", authMiddleware, GetUser);
 

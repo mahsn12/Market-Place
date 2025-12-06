@@ -3,14 +3,17 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
 import '../Style/RegisterPage.css';
 
-function RegisterPage({ onNavigate, onRegister }) {
+// IMPORT THE API
+import { registerUser } from "../apis/Userapi";
+
+function RegisterPage({ onNavigate }) {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    userType: 'buyer'
+    phone: '' // NEW FIELD
   });
 
   const handleChange = (e) => {
@@ -20,19 +23,30 @@ function RegisterPage({ onNavigate, onRegister }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords don't match!");
       return;
     }
-    
-    console.log('Registration attempted:', formData);
-    if (onRegister) {
-      onRegister(formData);
+
+    try {
+      const res = await registerUser({
+        name: `${formData.firstName} ${formData.lastName}`,  // COMBINE NAMES
+        email: formData.email,
+        password: formData.password,
+        role: formData.userType,   // BACKEND WANTS "role"
+        phone: formData.phone      // SEND PHONE
+      });
+
+      alert("Registration successful!");
+
+      if (onNavigate) onNavigate("login");
+
+    } catch (err) {
+      alert("Registration failed: " + err.message);
     }
-    alert('Registration successful! Welcome to Marketplace!');
   };
 
   return (
@@ -85,6 +99,20 @@ function RegisterPage({ onNavigate, onRegister }) {
             />
           </div>
 
+          {/* PHONE INPUT */}
+          <div className="input-group">
+            <label>Phone Number</label>
+            <input
+              type="text"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="form-input"
+              placeholder="Enter your phone number"
+            />
+          </div>
+
           <div className="input-group">
             <label>Password</label>
             <input
@@ -110,34 +138,6 @@ function RegisterPage({ onNavigate, onRegister }) {
               className="form-input"
               placeholder="Confirm your password"
             />
-          </div>
-
-          <div className="input-group">
-            <label>I want to join as:</label>
-            <div className="user-type-selector">
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="buyer"
-                  checked={formData.userType === 'buyer'}
-                  onChange={handleChange}
-                />
-                <span className="radio-custom"></span>
-                Buyer
-              </label>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="seller"
-                  checked={formData.userType === 'seller'}
-                  onChange={handleChange}
-                />
-                <span className="radio-custom"></span>
-                Seller
-              </label>
-            </div>
           </div>
 
           <div className="form-options">
@@ -168,15 +168,15 @@ function RegisterPage({ onNavigate, onRegister }) {
         </div>
 
         <div className="register-footer">
-           <p>
+          <p>
             Already have an account?{' '}
-             <button 
-                onClick={() => onNavigate('login')} // This should already be there
+            <button 
+              onClick={() => onNavigate('login')}
               className="login-link"
-              >
-                Login
+            >
+              Login
             </button>
-            </p>
+          </p>
         </div>
       </div>
     </div>

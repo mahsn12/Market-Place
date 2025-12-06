@@ -1,12 +1,17 @@
 import express from"express";
 import userRouter from "./Routes/UserRoutes.js";
 import Database from "./Config/db.js";
-import OrderRouter from "./Routes/UserRoutes.js";
-import PostController from "./Routes/UserRoutes.js"
+import OrderRouter from "./Routes/OrderRouter.js";
+import PostController from "./Routes/PostsRouter.js"
 import productRoutes from "./Routes/ProductsRouter.js"
+import cors from "cors";
 
 const app = express();
-
+// ✅ CORS middleware — put it here
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
 app.use(express.json());
 app.use("/api/users",userRouter);
 app.use("/api/orders",OrderRouter);
