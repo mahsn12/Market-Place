@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
 import '../Style/CheckoutPage.css';
 
-export default function CheckoutPage() {
+export default function CheckoutPage({ onNavigate }) {
   const [cart, setCart] = useState([]);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -112,9 +112,23 @@ export default function CheckoutPage() {
       setLoading(false);
     }
   };
- const handleBackToShopping = () => {
-  onNavigate('/Frontend/Pages/HomePage');  // This already goes to home page
-};
+
+  const handleBackToShopping = () => {
+    console.log("Back to shopping clicked");
+    
+    // Method 1: Use onNavigate prop if available
+    if (onNavigate && typeof onNavigate === 'function') {
+      console.log("Using onNavigate prop");
+      onNavigate('home');
+    } 
+    // Method 2: Direct approach (fallback)
+    else {
+      console.log("Using fallback method");
+      localStorage.setItem("CurrentPage", "home");
+      window.location.reload();
+    }
+  };
+
   return (
     <PageLayout title="Your Cart">
       <div className="checkout-content shopping-cart">
@@ -131,10 +145,7 @@ export default function CheckoutPage() {
               {cart.map(item => (
                 <div key={item.id} className="product-row-card">
                   <div className="product-image">
-                    <img
-                      src={item.image || 'https://via.placeholder.com/150'}
-                      alt={item.name}
-                    />
+                    <div className="product-emoji">{item.image || '🛒'}</div>
                   </div>
                   <div className="product-details">
                     <div className="product-header">
@@ -271,24 +282,15 @@ export default function CheckoutPage() {
               {loading ? 'Processing...' : 'Buy Now'}
             </button>
 
-            <button
-              type="button"
-              className="btn-secondary"
-            >
-              💳 Pay with Card
-            </button>
-
+            {/* FIXED: Change link to button */}
             <div className="back-to-shopping">
-          <a 
-            
-            onClick={(e) => {
-              e.preventDefault();
-              handleBackToShopping();  // This calls onNavigate('home')
-            }}
-            >
-            ← Back to shopping
-          </a>
-        </div>
+              <button
+                className="back-to-shopping-btn"
+                onClick={handleBackToShopping}
+              >
+                ← Back to shopping
+              </button>
+            </div>
           </form>
         </aside>
       </div>

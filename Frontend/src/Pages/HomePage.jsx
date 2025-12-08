@@ -5,6 +5,7 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     // Load mock products
@@ -45,12 +46,6 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
       return;
     }
 
-    // Only buyers can add to cart
-    if (user?.userType !== 'buyer') {
-      alert('Sellers cannot add items to cart. Switch to buyer account to shop.');
-      return;
-    }
-
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const existingItem = cart.find(item => item.id === product.id);
 
@@ -68,11 +63,17 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
   const handleStartShoppingClick = () => {
     if (!isLoggedIn) {
       onStartShopping(); // Go to login
-    } else if (user?.userType === 'seller') {
-      alert('You are logged in as a seller. Switch to buyer account to shop.');
     } else {
-      // Already logged in as buyer, focus on search
+      // Already logged in, focus on search
       document.querySelector('.search-container')?.focus();
+    }
+  };
+
+  const handleGoToSellerDashboard = () => {
+    if (!isLoggedIn) {
+      onStartShopping(); // Go to login first
+    } else {
+      onNavigate('seller'); // Navigate to seller dashboard
     }
   };
 
@@ -80,13 +81,6 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
 
   return (
     <div className="home-page">
-      <HomeTopNav
-      isLoggedIn={isLoggedIn}
-      onNavigate={onNavigate}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-      user={user}
-      />
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
@@ -98,15 +92,26 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
             Discover thousands of products from trusted sellers. Fast, secure, and reliable.
           </p>
           <div className="hero-cta">
-            <button 
-              className="btn-primary btn-lg" 
-              onClick={handleStartShoppingClick}
-            >
-              {isLoggedIn ? 'Continue Shopping' : 'Start Shopping'}
-            </button>
-            {isLoggedIn && user?.userType === 'seller' && (
+            <div className="cta-buttons">
+              <button 
+                className="btn-primary btn-lg" 
+                onClick={handleStartShoppingClick}
+              >
+                {isLoggedIn ? 'Continue Shopping' : 'Start Shopping'}
+              </button>
+              {isLoggedIn && (
+                <button 
+                  className="btn-secondary btn-lg" 
+                  onClick={handleGoToSellerDashboard}
+                  style={{ marginLeft: '10px' }}
+                >
+                  Go to Seller Dashboard
+                </button>
+              )}
+            </div>
+            {!isLoggedIn && (
               <p style={{ marginTop: '1rem', color: '#666', fontSize: '0.875rem' }}>
-                You are in seller mode. Switch to buyer account to shop.
+                Login to buy products or sell your own items
               </p>
             )}
           </div>
@@ -118,8 +123,8 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
         </div>
       </section>
 
-      {/* Search & Filter Section - Only show if logged in as buyer or not logged in */}
-      {(isLoggedIn && user?.userType === 'buyer') && (
+      {/* Search & Filter Section - Show to everyone when logged in */}
+      {isLoggedIn && (
         <section className="search-section">
           <div className="search-wrapper">
             <input
@@ -146,23 +151,30 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
         </section>
       )}
 
-      {/* Products Grid - Show to everyone, but only buyers can add to cart */}
+      {/* Products Grid - Show to everyone */}
       <section className="products-section">
         <div className="products-header">
           <h2>{selectedCategory === 'all' ? 'Featured Products' : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`}</h2>
           {!isLoggedIn && (
             <p className="product-notice">Login to start shopping!</p>
           )}
-          {isLoggedIn && user?.userType === 'seller' && (
-            <p className="product-notice">Switch to buyer account to shop</p>
-          )}
+          
         </div>
 
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">🔍</div>
+            <div className="empty-icon"></div>
             <h3>No products found</h3>
             <p>Try adjusting your search or category filters</p>
+            {isLoggedIn && (
+              <button 
+                onClick={handleGoToSellerDashboard}
+                className="btn-secondary"
+                style={{ marginTop: '1rem' }}
+              >
+                Sell Your Products
+              </button>
+            )}
           </div>
         ) : (
           <div className="products-grid">
@@ -182,10 +194,9 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
                     <button
                       className="btn-add-to-cart"
                       onClick={() => addToCart(product)}
-                      disabled={isLoggedIn && user?.userType === 'seller'}
+                      disabled={!isLoggedIn}
                     >
-                      {!isLoggedIn ? 'Login to Buy' : 
-                       user?.userType === 'seller' ? 'Seller Mode' : 'Add'}
+                      {!isLoggedIn ? 'Login to Buy' : 'Add'}
                     </button>
                   </div>
                 </div>
@@ -209,17 +220,45 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
           <div className="stat-number">98%</div>
           <div className="stat-label">Satisfaction</div>
         </div>
+        <div className="stat">
+          <div className="stat-number">10K+</div>
+          <div className="stat-label">Active Sellers</div>
+        </div>
       </section>
+
+      {/* Call to Action for Sellers */}
+      {isLoggedIn && (
+        <section className="seller-cta">
+          <div className="seller-cta-content">
+            <h2>Start Selling Today</h2>
+            <p>List your products and reach thousands of buyers</p>
+            <button 
+              className="btn-primary btn-lg" 
+              onClick={handleGoToSellerDashboard}
+            >
+              Go to Seller Dashboard
+            </button>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-section">
-            <h4>About</h4>
+            <h4>Buy</h4>
             <ul>
-              <li><a href="#about">About Us</a></li>
-              <li><a href="#blog">Blog</a></li>
-              <li><a href="#careers">Careers</a></li>
+              <li><a href="#products">All Products</a></li>
+              <li><a href="#categories">Categories</a></li>
+              <li><a href="#deals">Deals</a></li>
+            </ul>
+          </div>
+          <div className="footer-section">
+            <h4>Sell</h4>
+            <ul>
+              <li><a href="#sell" onClick={(e) => { e.preventDefault(); handleGoToSellerDashboard(); }}>Start Selling</a></li>
+              <li><a href="#seller-guide">Seller Guide</a></li>
+              <li><a href="#fees">Fees</a></li>
             </ul>
           </div>
           <div className="footer-section">

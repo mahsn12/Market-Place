@@ -48,33 +48,7 @@ const handleSubmit = async (e) => {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
-          {/* User Type Selection */}
-          <div className="input-group">
-            <div className="user-type-selector">
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="buyer"
-                  checked={formData.userType === 'buyer'}
-                  onChange={handleChange}
-                />
-                <span className="radio-custom"></span>
-                Buyer
-              </label>
-              <label className="radio-option">
-                <input
-                  type="radio"
-                  name="userType"
-                  value="seller"
-                  checked={formData.userType === 'seller'}
-                  onChange={handleChange}
-                />
-                <span className="radio-custom"></span>
-                Seller
-              </label>
-            </div>
-          </div>
+          
 
           <div className="input-group">
             <label>Email Address</label>

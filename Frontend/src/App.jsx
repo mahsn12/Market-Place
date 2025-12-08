@@ -21,44 +21,53 @@ function App() {
       JSON.parse(localStorage.getItem("User")) || null
     );
     const [searchQuery, setSearchQuery] = useState('');
-    
-
 
   const handleNavigation = (page) => {
-    setCurrentPage(page)
-    window.scrollTo(0, 0)
-    localStorage.setItem("CurrentPage",page);
+    console.log("Navigating to:", page);
+    setCurrentPage(page);
+    window.scrollTo(0, 0);
+    localStorage.setItem("CurrentPage", page);
   }
 
   const handleLogin = (userData) => {
-    setIsLoggedIn(true)
-    setUser(userData)
-    localStorage.setItem("User",JSON.stringify(userData));
-    localStorage.setItem("isLoggedIn", true);
-
+    setIsLoggedIn(true);
+    setUser(userData);
+    localStorage.setItem("User", JSON.stringify(userData));
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("token", userData.token || "");
+    handleNavigation('home');
   }
 
-
   const handleLogout = () => {
-    setIsLoggedIn(false)
-    setUser(null)
-     // Go back to home after logout
-    localStorage.removeItem("User")
-    localStorage.removeItem("isLoggedIn")
-    localStorage.removeItem("token")
-    handleNavigation('home')
+    setIsLoggedIn(false);
+    setUser(null);
+    localStorage.removeItem("User");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("token");
+    handleNavigation('home');
   }
 
   const handleStartShopping = () => {
     if (!isLoggedIn) {
-      handleNavigation('login') // Go to login if not logged in
+      handleNavigation('login');
+    } else {
+      handleNavigation('home');
     }
-    // If already logged in, they can continue shopping on home page
   }
 
-return (
-    <div className="app-container">
+  // Add this function to handle seller dashboard navigation
+  const handleGoToSellerDashboard = () => {
+    console.log("Going to seller dashboard...");
+    if (!isLoggedIn) {
+      alert("Please login first to access seller dashboard");
+      handleNavigation('login');
+    } else {
+      handleNavigation('seller');
+    }
+  }
 
+  return (
+    <div className="app-container">
       {/* show TopNav except login/register */}
       {currentPage !== 'login' && currentPage !== 'register' && (
         <TopNav
@@ -72,11 +81,11 @@ return (
       )}
 
       <main className="main-content">
-
         {currentPage === 'home' && (
           <HomePage
             onNavigate={handleNavigation}
             onStartShopping={handleStartShopping}
+            onGoToSellerDashboard={handleGoToSellerDashboard} // Pass the handler
             isLoggedIn={isLoggedIn}
             user={user}
           />
@@ -93,17 +102,40 @@ return (
           <RegisterPage onNavigate={handleNavigation} />
         )}
 
-        {isLoggedIn && user?.userType === 'buyer' && (
+        {/* Protected pages - only for logged in users */}
+        {isLoggedIn && (
           <>
-            {currentPage === 'checkout' && <CheckoutPage />}
-            {currentPage === 'orders' && <OrdersPage />}
+            {currentPage === 'checkout' && (
+              <CheckoutPage 
+                onNavigate={handleNavigation}
+              />
+            )}
+            {currentPage === 'orders' && (
+              <OrdersPage 
+                onNavigate={handleNavigation}
+              />
+            )}
+            {currentPage === 'seller' && (
+              <SellerDashboard 
+                onNavigate={handleNavigation}
+              />
+            )}
           </>
         )}
 
-        {isLoggedIn && user?.userType === 'seller' &&
-          currentPage === 'seller' && (
-            <SellerDashboard />
-          )}
+        {/* If user tries to access protected page without login */}
+        {!isLoggedIn && (currentPage === 'checkout' || currentPage === 'orders' || currentPage === 'seller') && (
+          <div className="login-required">
+            <h2>Login Required</h2>
+            <p>Please login to access this page</p>
+            <button 
+              onClick={() => handleNavigation('login')}
+              className="btn-primary"
+            >
+              Go to Login
+            </button>
+          </div>
+        )}
       </main>
     </div>
   )

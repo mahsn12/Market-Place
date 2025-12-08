@@ -268,3 +268,34 @@
     content: 'Price: ';
   }
 }
+
+/* If you want it to look exactly like the <a> tag */
+.back-to-shopping-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.back-to-shopping-btn:hover {
+  color: #0056b3;
+  text-decoration: none;
+}
+
+
+.orders-main .back-to-shopping {
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+
+.empty-state .back-to-shopping {
+  border: none;
+  padding-top: 20px;
+  text-align: center;
+}

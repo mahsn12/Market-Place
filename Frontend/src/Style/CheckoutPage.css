@@ -443,23 +443,58 @@
   text-decoration: underline;
 }
 
+/* Back to Shopping Button Styles */
 .back-to-shopping {
+  margin-top: 20px;
   text-align: center;
-  padding-top: 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  margin-top: auto;
+  padding: 10px 0;
 }
 
-.back-to-shopping a {
-  color: #0d0d0d;
+.back-to-shopping-btn {
+  /* Makes it look exactly like a link */
+  background: none;
+  border: none;
+  color: #007bff; /* Same blue as links */
+  cursor: pointer;
+  font-size: 16px;
+  font-family: inherit;
+  padding: 0;
+  margin: 0;
+  
+  /* Same hover effect as links */
+  transition: color 0.2s ease;
+}
+
+.back-to-shopping-btn:hover {
+  color: #0056b3; /* Darker blue on hover */
   text-decoration: none;
-  font-size: 0.875rem;
-  font-weight: 600;
-  transition: color 0.2s;
 }
 
-.back-to-shopping a:hover {
-  color: #0ea5e9;
+.back-to-shopping-btn:focus {
+  outline: none;
+  text-decoration: underline;
+}
+
+.back-to-shopping-btn:active {
+  color: #003d7a; /* Even darker when clicked */
+}
+
+/* If you want it to look exactly like the <a> tag */
+.back-to-shopping-btn {
+  display: inline-block;
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.back-to-shopping-btn:hover {
+  color: #0056b3;
+  text-decoration: none;
 }
 
 @media (min-width: 1025px) {

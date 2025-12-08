@@ -12,52 +12,37 @@ export default function TopNavbar({
   return (
     <div className="home-top-nav">
 
-      <div className="home-search-wrapper">
-        <span className="search-icon">🔍</span>
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search for products..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {/* Empty div on the left to maintain layout */}
+      <div style={{ flex: 1 }}></div>
 
-      {/* icons section */}
-      <div style={{ display: "flex", alignItems: "center" }}>
+      {/* icons section - all buttons on the right */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         
-        {isLoggedIn && (
+        {isLoggedIn && ( 
           <>
-            {/* Wishlist */}
-            <span
-              style={{ fontSize: "1.3rem", marginLeft: "1rem", cursor: "pointer" }}
-              onClick={() => onNavigate("wishlist")}
-            >
-              ❤️
-            </span>
-
-            {/* Cart */}
-            <span
-              style={{ fontSize: "1.3rem", marginLeft: "1rem", cursor: "pointer" }}
+            {/* Cart Button */}
+            <button
+              className="nav-button cart-button"
               onClick={() => onNavigate("checkout")}
+              title="View Cart"
             >
-              🛒
-            </span>
+              🛒 Cart
+            </button>
 
-            {/* Orders */}
-            <span
-              style={{ fontSize: "1.3rem", marginLeft: "1rem", cursor: "pointer" }}
+            {/* Orders Button */}
+            <button
+              className="nav-button orders-button"
               onClick={() => onNavigate("orders")}
+              title="View Orders"
             >
-              📦
-            </span>
+              📦 Orders
+            </button>
           </>
         )}
 
         {!isLoggedIn && (
           <>
             <button
-              style={{ marginLeft: "1rem" }}
               className="nav-link"
               onClick={() => onNavigate("login")}
             >
@@ -65,8 +50,7 @@ export default function TopNavbar({
             </button>
 
             <button
-              style={{ marginLeft: "1rem" }}
-              className="nav-link"
+              className="nav-link register"
               onClick={() => onNavigate("register")}
             >
               Register
@@ -82,11 +66,12 @@ export default function TopNavbar({
               alt="profile"
               className="home-profile"
             />
-
+           
+            {/* Single logout button */}
             <button
-              style={{ marginLeft: "1rem" }}
-              className="nav-link"
+              className="nav-button logout-button"
               onClick={onLogout}
+              title="Logout"
             >
               Logout
             </button>

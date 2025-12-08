@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
 import '../Style/OrdersPage.css';
 
-export default function OrdersPage() {
+export default function OrdersPage({ onNavigate }) { // ADD onNavigate prop
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,9 +41,26 @@ export default function OrdersPage() {
     }
   };
 
+  const handleBackToShopping = () => {
+    console.log("Back to shopping clicked from OrdersPage");
+    
+    // Method 1: Use onNavigate prop if available
+    if (onNavigate && typeof onNavigate === 'function') {
+      console.log("Using onNavigate prop");
+      onNavigate('home');
+    } 
+    // Method 2: Direct approach (fallback)
+    else {
+      console.log("Using fallback method");
+      localStorage.setItem("CurrentPage", "home");
+      window.location.reload();
+    }
+  };
+
   return (
     <PageLayout title="Your Orders">
       <div className="orders-main">
+
         {loading ? (
           <div className="loading">Loading orders...</div>
         ) : orders.length === 0 ? (
@@ -51,6 +68,15 @@ export default function OrdersPage() {
             <div className="empty-icon">📦</div>
             <h3>No orders yet</h3>
             <p>Start shopping to place your first order!</p>
+            {/* Add another back button in empty state */}
+            <div className="back-to-shopping" style={{ marginTop: '20px' }}>
+              <button
+                className="back-to-shopping-btn"
+                onClick={handleBackToShopping}
+              >
+                ← Back to shopping
+              </button>
+            </div>
           </div>
         ) : (
           <div className="orders-list">
@@ -148,4 +174,3 @@ export default function OrdersPage() {
     </PageLayout>
   );
 }
-
