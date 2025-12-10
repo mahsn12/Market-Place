@@ -12,8 +12,19 @@ export default function TopNavbar({
   return (
     <div className="home-top-nav">
 
-      {/* Empty div on the left to maintain layout */}
-      <div style={{ flex: 1 }}></div>
+      {/* Brand link back to homepage */}
+      <div
+        className="home-brand"
+        role="link"
+        tabIndex={0}
+        onClick={() => onNavigate("home")}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") onNavigate("home");
+        }}
+        title="Go to homepage"
+      >
+        Marketplace
+      </div>
 
       {/* icons section - all buttons on the right */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>

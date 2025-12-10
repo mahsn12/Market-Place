@@ -28,10 +28,10 @@ router.get("/profile/:id", authMiddleware, GetUser);
 router.get("/search/:query", authMiddleware, searchByNameOrEmail);
 
 // UPDATE USER
-router.patch("/update", authMiddleware, UpdateUser);
+router.patch("/update/:id", authMiddleware, UpdateUser);
 
 // DELETE USER
-router.delete("/delete/:id", authMiddleware, DeleteUser);
+router.post("/delete/:id", authMiddleware, DeleteUser);
 
 // CART
 router.patch("/cart/add", authMiddleware, addToCart);

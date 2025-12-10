@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import PageLayout from '../components/PageLayout';
 import '../Style/CheckoutPage.css';
+import { createOrder } from '../apis/Orders';
+import { useToast } from '../components/ToastContext';
 
-export default function CheckoutPage({ onNavigate }) {
+export default function CheckoutPage({ user, onNavigate }) {
   const [cart, setCart] = useState([]);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
+  const { showSuccess, showError, showWarning } = useToast();
   const [shipping, setShipping] = useState(0);
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
@@ -37,7 +40,7 @@ export default function CheckoutPage({ onNavigate }) {
 
   const handleQtyChange = (itemId, newQty) => {
     const updated = cart.map(item =>
-      item.id === itemId ? { ...item, qty: Math.max(1, newQty) } : item
+      item._id === itemId ? { ...item, qty: Math.max(1, newQty) } : item
     );
     setCart(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
@@ -45,69 +48,77 @@ export default function CheckoutPage({ onNavigate }) {
   };
 
   const handleQtyIncrease = (itemId) => {
-    const item = cart.find(i => i.id === itemId);
+    const item = cart.find(i => i._id === itemId);
     if (item) {
       handleQtyChange(itemId, (item.qty || 1) + 1);
     }
   };
 
   const handleQtyDecrease = (itemId) => {
-    const item = cart.find(i => i.id === itemId);
+    const item = cart.find(i => i._id === itemId);
     if (item && (item.qty || 1) > 1) {
       handleQtyChange(itemId, (item.qty || 1) - 1);
     }
   };
 
   const handleRemove = (itemId) => {
-    const updated = cart.filter(item => item.id !== itemId);
+    const updated = cart.filter(item => item._id !== itemId);
     setCart(updated);
     localStorage.setItem('cart', JSON.stringify(updated));
     calculateTotals(updated);
   };
 
   const placeOrder = async () => {
+    if (!user?.id) {
+      showWarning('Please log in to place an order');
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Create order object
-      const order = {
-        _id: `order_${Date.now()}`,
-        items: cart,
-        note: note,
-        subtotal: subtotal,
-        shipping: shipping,
-        tax: tax,
-        total: total,
-        status: 'Processing',
-        createdAt: new Date().toISOString(),
-        cardLast4: cardData.cardNumber.slice(-4)
-      };
+      // Group cart items by seller
+      const ordersBySeller = {};
+      cart.forEach(item => {
+        const sellerId = item.sellerId?._id || item.sellerId || item.seller?.id;
+        if (!sellerId) {
+          console.error('Product missing sellerId:', item);
+          return;
+        }
 
-      // Save to localStorage
-      const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-      existingOrders.push(order);
-      localStorage.setItem('orders', JSON.stringify(existingOrders));
-
-      // Try to send to backend if available
-      try {
-        await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(order)
+        if (!ordersBySeller[sellerId]) {
+          ordersBySeller[sellerId] = [];
+        }
+        ordersBySeller[sellerId].push({
+          productId: item._id || item.id,
+          quantity: item.qty || 1,
+          price: item.price
         });
-      } catch (e) {
-        console.log('Backend unavailable, order saved to local storage');
-      }
+      });
 
-      alert('Order placed successfully!');
+      // Create orders for each seller
+      const orderPromises = Object.entries(ordersBySeller).map(async ([sellerId, products]) => {
+        const orderData = {
+          sellerId: sellerId,
+          products: products
+        };
+
+        return await createOrder(orderData);
+      });
+
+      await Promise.all(orderPromises);
+
+      showSuccess('Order(s) placed successfully!');
       setCart([]);
       setNote('');
       setCardData({ cardNumber: '', cardName: '', expiration: '', cvv: '' });
       localStorage.removeItem('cart');
       calculateTotals([]);
+      onNavigate('orders'); // Redirect to orders page
     } catch (e) {
-      console.error(e);
-      alert('Failed to place order');
+      console.error('Failed to place order:', e);
+      const errorMessage = e.message || e.error || e.response?.data?.message || 'Failed to place order. Please try again.';
+      showError(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -145,7 +156,19 @@ export default function CheckoutPage({ onNavigate }) {
               {cart.map(item => (
                 <div key={item.id} className="product-row-card">
                   <div className="product-image">
-                    <div className="product-emoji">{item.image || '🛒'}</div>
+                    <img 
+                      src={item.images?.[0] || ''} 
+                      alt={item.name} 
+                      className="product-img" 
+                      style={{display: item.images?.[0] ? 'block' : 'none'}}
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="product-emoji" style={{display: item.images?.[0] ? 'none' : 'flex'}}>
+                      🛒
+                    </div>
                   </div>
                   <div className="product-details">
                     <div className="product-header">
@@ -154,7 +177,7 @@ export default function CheckoutPage({ onNavigate }) {
                         <p className="product-color">{item.seller || 'Unknown Seller'}</p>
                       </div>
                       <button
-                        onClick={() => handleRemove(item.id)}
+                        onClick={() => handleRemove(item._id)}
                         className="product-remove-btn"
                         title="Remove item"
                       >
@@ -167,7 +190,7 @@ export default function CheckoutPage({ onNavigate }) {
                         <button
                           type="button"
                           className="minus"
-                          onClick={() => handleQtyDecrease(item.id)}
+                          onClick={() => handleQtyDecrease(item._id)}
                         ></button>
                         <input
                           type="number"
@@ -178,7 +201,7 @@ export default function CheckoutPage({ onNavigate }) {
                         <button
                           type="button"
                           className="plus"
-                          onClick={() => handleQtyIncrease(item.id)}
+                          onClick={() => handleQtyIncrease(item._id)}
                         ></button>
                       </div>
                     </div>

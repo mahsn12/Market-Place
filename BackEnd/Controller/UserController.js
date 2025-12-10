@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import Product from "../Model/Product.js";
+import Order from "../Model/Order.js";
+import Post from "../Model/Post.js";
 
 dotenv.config();
 
@@ -91,8 +93,12 @@ export const GetUser = async (request, response) => {
 
 export const UpdateUser = async (request, response) => {
   try {
-    const { id } = request.params;
+    const id = request.params.id || request.body.id;
     const updates = request.body;
+
+    if (!id) {
+      return response.status(400).json({ message: "User ID is required" });
+    }
 
     // If updating password → rehash
     if (updates.password) {
@@ -124,18 +130,63 @@ export const UpdateUser = async (request, response) => {
 
 export const DeleteUser = async (request, response) => {
   try {
+    console.log('Delete user request:', {
+      params: request.params,
+      body: request.body,
+      user: request.user
+    });
+
     const { id } = request.params;
+    const { password } = request.body;
 
-    const deletedUser = await User.findByIdAndDelete(id);
+    // Verify the user is deleting their own account
+    if (request.user.id !== id) {
+      console.log('User ID mismatch:', { requestUserId: request.user.id, paramId: id });
+      return response.status(403).json({
+        message: "You can only delete your own account"
+      });
+    }
 
-    if (!deletedUser) {
+    // Verify password
+    if (!password) {
+      return response.status(400).json({
+        message: "Password is required to delete account"
+      });
+    }
+
+    // Find the user first
+    const user = await User.findById(id);
+    if (!user) {
       return response.status(404).json({
         message: "User Not Found"
       });
     }
 
+    // Verify password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return response.status(401).json({
+        message: "Invalid password"
+      });
+    }
+
+    // Delete all products by this user
+    await Product.deleteMany({ sellerId: id });
+
+    // Delete all posts by this user
+    await Post.deleteMany({ sellerId: id });
+
+    // Delete all orders where this user is the buyer
+    await Order.deleteMany({ buyerId: id });
+
+    // Delete all orders where this user is the seller
+    await Order.deleteMany({ sellerId: id });
+
+    // Delete the user account
+    await User.findByIdAndDelete(id);
+
     return response.status(200).json({
-      message: "User Deleted Successfully"
+      message: "Account and all associated data deleted successfully"
     });
   } catch (e) {
     return response.status(500).json({

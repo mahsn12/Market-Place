@@ -6,6 +6,7 @@ import {
   getProduct,
   filterAndSearch,
   reportProduct,
+  getProductsBySeller
 } from "../Controller/ProductController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 
@@ -25,6 +26,9 @@ router.patch("/update", authMiddleware, updateProduct);
 
 // DELETE (seller only)
 router.delete("/delete/:id", authMiddleware, deleteProduct);
+
+// GET BY SELLER
+router.get("/seller/:sellerId", getProductsBySeller);
 
 // REPORT PRODUCT
 router.post("/report", authMiddleware, reportProduct);

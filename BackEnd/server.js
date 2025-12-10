@@ -9,10 +9,10 @@ import cors from "cors";
 const app = express();
 // ✅ CORS middleware — put it here
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "http://localhost:5174"],
     credentials: true
 }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use("/api/users",userRouter);
 app.use("/api/orders",OrderRouter);
 app.use("/api/posts",PostController);

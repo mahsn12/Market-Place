@@ -19,16 +19,16 @@ async function calculateTotalPrice(products) {
   return total;
 }
 
-async function validateAndReserveStock(session, products) {
+async function validateAndReserveStock(products) {
   for (const item of products) {
-    const prod = await Product.findById(item.productId).session(session).select("stock status sellerId");
+    const prod = await Product.findById(item.productId).select("stock status sellerId");
     if (!prod) throw new Error(`Product not found: ${item.productId}`);
     if (prod.status === "sold") throw new Error(`Product already sold: ${item.productId}`);
     if (typeof prod.stock === "number") {
       if (prod.stock < item.quantity) throw new Error(`Insufficient stock for product ${item.productId}`);
       prod.stock -= item.quantity;
       if (prod.stock === 0) prod.status = "sold";
-      await prod.save({ session });
+      await prod.save();
     }
   }
 }
@@ -36,27 +36,23 @@ async function validateAndReserveStock(session, products) {
 // Create Order (transactional) — reserves inventory and writes timeline
 export const createOrder = async (request, response) => { 
   // TLDR: Creates an order transactionally, reserves stock, logs initial timeline, and prepares for payment.
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
-    const { buyerId, sellerId, products } = request.body;
+    const { sellerId, products } = request.body;
+    const buyerId = request.user.id;
 
     if (!buyerId || !sellerId || !products || !Array.isArray(products) || products.length === 0) {
-      await session.abortTransaction();
-      session.endSession();
-      return response.status(400).json({ message: "buyerId, sellerId and products[] are required" });
+      return response.status(400).json({ message: "sellerId and products[] are required" });
     }
 
-    const buyer = await User.findById(buyerId).session(session);
+    const buyer = await User.findById(buyerId);
     if (!buyer) throw new Error("Buyer not found");
 
-    const seller = await User.findById(sellerId).session(session);
+    const seller = await User.findById(sellerId);
     if (!seller) throw new Error("Seller not found");
 
     const totalPrice = await calculateTotalPrice(products);
 
-    await validateAndReserveStock(session, products);
+    await validateAndReserveStock(products);
 
     const order = new Order({
       buyerId,
@@ -70,10 +66,7 @@ export const createOrder = async (request, response) => {
       timeline: [{ status: "Pending", date: new Date(), by: buyerId }]
     });
 
-    await order.save({ session });
-
-    await session.commitTransaction();
-    session.endSession();
+    await order.save();
 
     // TODO: Integrate payment (e.g., create a Stripe Checkout session). Return payment instructions to client.
     const payment = { provider: "stripe", clientSecret: null, checkoutUrl: null };
@@ -83,8 +76,6 @@ export const createOrder = async (request, response) => {
 
     return response.status(201).json({ message: "Order created successfully", orderId: order._id, payment, result: order });
   } catch (e) {
-    await session.abortTransaction();
-    session.endSession();
     return response.status(500).json({ message: e.message });
   }
 };

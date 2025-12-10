@@ -15,5 +15,5 @@ export const updateProduct = (data) =>
 export const deleteProduct = (id) =>
   api(`/api/products/delete/${id}`, { method: "DELETE" });
 
-export const reportProduct = (data) =>
-  api("/api/products/report", { method: "POST", body: data });
+export const getProductsBySeller = (sellerId) =>
+  api(`/api/products/seller/${sellerId}`);

@@ -1,27 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import '../Style/HomePage.css';
+import { getAllProducts } from '../apis/Productsapi';
+import { useToast } from '../components/ToastContext';
 
-export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user }) {
+export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user, refreshTrigger }) {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const { showSuccess } = useToast();
 
   useEffect(() => {
-    // Load mock products
-    const mockProducts = [
-      { id: 1, name: 'Wireless Headphones', category: 'electronics', price: 79.99, seller: 'Tech Store', rating: 4.5, image: '🎧' },
-      { id: 2, name: 'Vintage Coffee Table', category: 'furniture', price: 149.99, seller: 'Home Decor', rating: 4.8, image: '🪑' },
-      { id: 3, name: 'Running Shoes', category: 'fashion', price: 89.99, seller: 'Sport Pro', rating: 4.6, image: '👟' },
-      { id: 4, name: 'Smartphone Case', category: 'electronics', price: 19.99, seller: 'Mobile Gear', rating: 4.3, image: '📱' },
-      { id: 5, name: 'Leather Wallet', category: 'fashion', price: 45.99, seller: 'Fashion Hub', rating: 4.7, image: '👜' },
-      { id: 6, name: 'Desk Lamp', category: 'furniture', price: 34.99, seller: 'Lighting Co', rating: 4.4, image: '💡' },
-      { id: 7, name: 'Bluetooth Speaker', category: 'electronics', price: 59.99, seller: 'Audio Pro', rating: 4.8, image: '🔊' },
-      { id: 8, name: 'Winter Jacket', category: 'fashion', price: 129.99, seller: 'Fashion Hub', rating: 4.5, image: '🧥' },
-    ];
-    setProducts(mockProducts);
-    setFilteredProducts(mockProducts);
-  }, []);
+    const fetchProducts = async () => {
+      try {
+        const response = await getAllProducts();
+        const fetchedProducts = response || [];
+        setProducts(fetchedProducts);
+        setFilteredProducts(fetchedProducts);
+      } catch (e) {
+        console.error('Failed to fetch products:', e);
+        // Fallback to empty array
+        setProducts([]);
+        setFilteredProducts([]);
+      }
+    };
+
+    fetchProducts();
+  }, [refreshTrigger]);
 
   useEffect(() => {
     let filtered = products;
@@ -47,7 +52,7 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
     }
 
     const cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const existingItem = cart.find(item => item.id === product.id);
+    const existingItem = cart.find(item => item._id === product._id);
 
     if (existingItem) {
       existingItem.qty += 1;
@@ -56,7 +61,7 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
-    alert(`${product.name} added to cart!`);
+    showSuccess(`${product.name} added to cart!`);
     onNavigate('checkout');
   };
 
@@ -179,15 +184,27 @@ export default function HomePage({ onNavigate, onStartShopping, isLoggedIn, user
         ) : (
           <div className="products-grid">
             {filteredProducts.map(product => (
-              <div key={product.id} className="product-card">
+              <div key={product._id} className="product-card">
                 <div className="product-image">
-                  <span className="product-emoji">{product.image}</span>
+                  <img 
+                    src={product.images?.[0] || ''} 
+                    alt={product.name} 
+                    className="product-img" 
+                    style={{display: product.images?.[0] ? 'block' : 'none'}}
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                      e.target.nextSibling.style.display = 'flex';
+                    }}
+                  />
+                  <span className="product-emoji" style={{display: product.images?.[0] ? 'none' : 'flex'}}>
+                    📦
+                  </span>
                 </div>
                 <div className="product-content">
                   <h3 className="product-name">{product.name}</h3>
                   <div className="product-meta">
-                    <span className="seller">{product.seller}</span>
-                    <span className="rating">⭐ {product.rating}</span>
+                    <span className="seller">{product.sellerId?.name || 'Unknown Seller'}</span>
+                    <span className="rating">⭐ {product.views || 0} views</span>
                   </div>
                   <div className="product-footer">
                     <span className="price">${product.price.toFixed(2)}</span>

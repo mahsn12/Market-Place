@@ -11,10 +11,11 @@ import {
   paymentWebhook,
   getSalesSummary
 } from "../Controller/OrderController.js";
+import { authMiddleware } from "../Middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/create", createOrder);
+router.post("/create", authMiddleware, createOrder);
 
 router.get("/all", getAllOrders);
 

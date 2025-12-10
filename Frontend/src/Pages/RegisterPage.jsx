@@ -5,8 +5,10 @@ import '../Style/RegisterPage.css';
 
 // IMPORT THE API
 import { registerUser } from "../apis/Userapi";
+import { useToast } from '../components/ToastContext';
 
 function RegisterPage({ onNavigate }) {
+  const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -27,7 +29,7 @@ function RegisterPage({ onNavigate }) {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords don't match!");
+      showError("Passwords don't match!");
       return;
     }
 
@@ -40,21 +42,26 @@ function RegisterPage({ onNavigate }) {
         phone: formData.phone      // SEND PHONE
       });
 
-      alert("Registration successful!");
+      showSuccess("Registration successful!");
 
       if (onNavigate) onNavigate("login");
 
     } catch (err) {
-      alert("Registration failed: " + err.message);
+      showError("Registration failed: " + err.message);
     }
   };
 
   return (
     <div className="marketplace-register-container">
       <div className="register-box">
+        <div className="register-brand">
+          <span className="brand-dot" aria-hidden="true"></span>
+          <span className="brand-name">Marketplace</span>
+          <span className="brand-pill">Secure</span>
+        </div>
         <div className="register-header">
-          <h2>Join Marketplace</h2>
-          <p>Create your account to start shopping or selling</p>
+          <h2>Create your account</h2>
+          <p>Shop confidently or start selling with a secure profile.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="register-form">
@@ -150,6 +157,7 @@ function RegisterPage({ onNavigate }) {
           <button type="submit" className="register-btn">
             Create Account
           </button>
+          <p className="helper-text">We’ll verify your email and phone for account security.</p>
         </form>
 
         <div className="divider">

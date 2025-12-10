@@ -17,11 +17,11 @@ export const getUserProfile = (id) =>
 export const searchUsers = (query) =>
   api(`/api/users/search/${query}`);
 
-export const updateUser = (data) =>
-  api("/api/users/update", { method: "PATCH", body: data });
+export const updateUser = (id, data) =>
+  api(`/api/users/update/${id}`, { method: "PATCH", body: data });
 
-export const deleteUser = (id) =>
-  api(`/api/users/delete/${id}`, { method: "DELETE" });
+export const deleteUser = (id, password) =>
+  api(`/api/users/delete/${id}`, { method: "POST", body: { password } });
 
 // CART
 export const addToCart = (data) =>

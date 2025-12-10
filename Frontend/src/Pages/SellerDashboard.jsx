@@ -1,17 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import '../Style/SellerDashboard.css';
+import { getProductsBySeller, createProduct, deleteProduct as deleteProductApi } from '../apis/Productsapi';
+import { getOrdersBySeller, updateOrderStatus } from '../apis/Orders';
+import { useToast } from '../components/ToastContext';
 
-export default function SellerDashboard() {
+export default function SellerDashboard({ user, onNavigate, onProductsRefresh }) {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [metrics, setMetrics] = useState({ revenue: 0, orders: 0, pending: 0, products: 0 });
   const [loading, setLoading] = useState(false);
+  const { showSuccess, showError, showWarning } = useToast();
   const [newProduct, setNewProduct] = useState({
     name: '',
     price: '',
     category: '',
     description: '',
-    image: '📦'
+    stock: '',
+    location: '',
+    images: []
   });
 
   const formatDate = (timestamp) => {
@@ -28,28 +34,35 @@ export default function SellerDashboard() {
 
   useEffect(() => {
     loadSellerData();
-  }, []);
+  }, [user]);
 
-  const loadSellerData = () => {
+  const loadSellerData = async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
     try {
-      const storedOrders = JSON.parse(localStorage.getItem('orders') || '[]');
-      const storedProducts = JSON.parse(localStorage.getItem('sellerProducts') || '[]');
+      const [productsRes, ordersRes] = await Promise.all([
+        getProductsBySeller(user.id),
+        getOrdersBySeller(user.id)
+      ]);
+
+      const sellerProducts = productsRes.result || [];
+      const sellerOrders = ordersRes.result || [];
 
       // Calculate metrics
-      const totalRevenue = storedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
-      const processingCount = storedOrders.filter(o => o.status === 'Processing').length;
+      const totalRevenue = sellerOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+      const pendingCount = sellerOrders.filter(o => o.status === 'Pending').length;
 
-      setOrders(storedOrders);
-      setProducts(storedProducts);
+      setProducts(sellerProducts);
+      setOrders(sellerOrders);
       setMetrics({
         revenue: totalRevenue,
-        orders: storedOrders.length,
-        pending: processingCount,
-        products: storedProducts.length
+        orders: sellerOrders.length,
+        pending: pendingCount,
+        products: sellerProducts.length
       });
     } catch (e) {
-      console.error('Error loading seller data:', e);
+      console.error('Failed to load seller data:', e);
       setOrders([]);
       setProducts([]);
       setMetrics({ revenue: 0, orders: 0, pending: 0, products: 0 });
@@ -60,45 +73,110 @@ export default function SellerDashboard() {
 
   const updateStatus = async (orderId, newStatus) => {
     try {
-      const updatedOrders = orders.map(order =>
-        order._id === orderId ? { ...order, status: newStatus } : order
-      );
-      setOrders(updatedOrders);
-      localStorage.setItem('orders', JSON.stringify(updatedOrders));
-      loadSellerData(); // Reload metrics
+      await updateOrderStatus(orderId, { status: newStatus });
+      loadSellerData(); // Reload data
     } catch (e) {
       console.error('Error updating order status:', e);
     }
   };
 
-  const handleAddProduct = (e) => {
-    e.preventDefault();
-    const product = {
-      id: Date.now(),
-      name: newProduct.name,
-      price: parseFloat(newProduct.price),
-      category: newProduct.category,
-      description: newProduct.description,
-      image: newProduct.image,
-      seller: 'You',
-      rating: 5.0,
-      createdAt: new Date().toISOString()
-    };
+  const handleImageUpload = (e) => {
+    const files = Array.from(e.target.files);
+    const newImages = [];
 
-    const updatedProducts = [...products, product];
-    setProducts(updatedProducts);
-    localStorage.setItem('sellerProducts', JSON.stringify(updatedProducts));
-    
-    setNewProduct({ name: '', price: '', category: '', description: '', image: '📦' });
-    setMetrics(prev => ({ ...prev, products: updatedProducts.length }));
-    alert('Product added successfully!');
+    files.forEach(file => {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        showWarning(`File ${file.name} is too large. Maximum size is 5MB.`);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        newImages.push(reader.result);
+        if (newImages.length === files.length) {
+          setNewProduct(prev => ({
+            ...prev,
+            images: [...prev.images, ...newImages]
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const deleteProduct = (productId) => {
-    const updatedProducts = products.filter(p => p.id !== productId);
-    setProducts(updatedProducts);
-    localStorage.setItem('sellerProducts', JSON.stringify(updatedProducts));
-    setMetrics(prev => ({ ...prev, products: updatedProducts.length }));
+  const removeImage = (index) => {
+    setNewProduct(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addImageUrl = () => {
+    const url = prompt('Enter image URL:');
+    if (url && url.trim()) {
+      setNewProduct(prev => ({
+        ...prev,
+        images: [...prev.images, url.trim()]
+      }));
+    }
+  };
+
+  const handleAddProduct = async (e) => {
+    e.preventDefault();
+    
+    // Validate required fields
+    if (!newProduct.name.trim() || !newProduct.price || !newProduct.category || !newProduct.description.trim() || !newProduct.stock || !newProduct.location.trim()) {
+      showWarning('Please fill in all required fields');
+      return;
+    }
+
+    const price = parseFloat(newProduct.price);
+    const stock = parseInt(newProduct.stock);
+
+    if (isNaN(price) || price <= 0) {
+      showWarning('Please enter a valid price');
+      return;
+    }
+
+    if (isNaN(stock) || stock < 0) {
+      showWarning('Please enter a valid stock quantity');
+      return;
+    }
+
+    try {
+      const productData = {
+        name: newProduct.name.trim(),
+        price: price,
+        category: newProduct.category,
+        description: newProduct.description.trim(),
+        stock: stock,
+        location: newProduct.location.trim(),
+        images: newProduct.images,
+        condition: 'new'
+      };
+
+      console.log('Sending product data:', productData);
+      await createProduct(productData);
+      
+      setNewProduct({ name: '', price: '', category: '', description: '', stock: '', location: '', images: [] });
+      loadSellerData();
+      if (onProductsRefresh) onProductsRefresh();
+      showSuccess('Product added successfully!');
+    } catch (e) {
+      console.error('Error adding product:', e);
+      const errorMessage = e.message || e.error || e.response?.data?.message || 'Failed to add product';
+      showError(`Error: ${errorMessage}`);
+    }
+  };
+
+  const deleteProduct = async (productId) => {
+    try {
+      await deleteProductApi(productId);
+      loadSellerData(); // Reload products
+    } catch (e) {
+      console.error('Error deleting product:', e);
+      showError('Failed to delete product');
+    }
   };
 
   return (
@@ -151,6 +229,14 @@ export default function SellerDashboard() {
                   required
                   className="form-input"
                 />
+                <input
+                  type="number"
+                  placeholder="Stock Quantity"
+                  value={newProduct.stock}
+                  onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                  required
+                  className="form-input"
+                />
               </div>
               <select
                 value={newProduct.category}
@@ -165,6 +251,14 @@ export default function SellerDashboard() {
                 <option value="home">Home & Garden</option>
                 <option value="sports">Sports</option>
               </select>
+              <input
+                type="text"
+                placeholder="Location (e.g., City, Country)"
+                value={newProduct.location}
+                onChange={(e) => setNewProduct({...newProduct, location: e.target.value})}
+                required
+                className="form-input"
+              />
               <textarea
                 placeholder="Product Description"
                 value={newProduct.description}
@@ -172,6 +266,45 @@ export default function SellerDashboard() {
                 required
                 className="form-textarea"
               />
+
+              {/* Image Upload Section */}
+              <div className="image-upload-section">
+                <label className="image-upload-label">Product Images</label>
+                <div className="image-upload-controls">
+                  <label htmlFor="image-upload" className="upload-btn">
+                    📁 Choose Files
+                  </label>
+                  <input
+                    type="file"
+                    id="image-upload"
+                    multiple
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    style={{ display: 'none' }}
+                  />
+                  <button type="button" onClick={addImageUrl} className="url-btn">
+                    🔗 Add URL
+                  </button>
+                </div>
+
+                {newProduct.images.length > 0 && (
+                  <div className="image-preview-grid">
+                    {newProduct.images.map((image, index) => (
+                      <div key={index} className="image-preview-item">
+                        <img src={image} alt={`Preview ${index + 1}`} className="preview-image" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="remove-image-btn"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button type="submit" className="btn-primary btn-full">
                 Add Product
               </button>
@@ -188,9 +321,21 @@ export default function SellerDashboard() {
             ) : (
               <div className="products-grid">
                 {products.map(product => (
-                  <div key={product.id} className="product-card">
+                  <div key={product._id} className="product-card">
                     <div className="product-image">
-                      <span className="product-emoji">{product.image}</span>
+                      <img 
+                        src={product.images?.[0] || ''} 
+                        alt={product.name} 
+                        className="product-img" 
+                        style={{display: product.images?.[0] ? 'block' : 'none'}}
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <span className="product-emoji" style={{display: product.images?.[0] ? 'none' : 'flex'}}>
+                        📦
+                      </span>
                     </div>
                     <div className="product-content">
                       <h4 className="product-name">{product.name}</h4>
@@ -200,7 +345,7 @@ export default function SellerDashboard() {
                         <span className="product-category">{product.category}</span>
                       </div>
                       <button 
-                        onClick={() => deleteProduct(product.id)}
+                        onClick={() => deleteProduct(product._id)}
                         className="btn-delete"
                       >
                         Delete
@@ -226,22 +371,22 @@ export default function SellerDashboard() {
                 {orders.slice().reverse().map(order => (
                   <div key={order._id} className="order-row">
                     <div className="order-info">
-                      <div className="order-id">Order #{order._id}</div>
+                      <div className="order-id">Order #{order._id.slice(-8)}</div>
                       <div className="order-items">
-                        {order.items?.length > 0
-                          ? `${order.items.length} item${order.items.length !== 1 ? 's' : ''}: ${order.items.map(i => i.name || i.title || 'Product').join(', ')}`
+                        {order.products?.length > 0
+                          ? `${order.products.length} item${order.products.length !== 1 ? 's' : ''}: ${order.products.map(i => i.productId?.name || 'Product').join(', ')}`
                           : 'No items'}
                       </div>
-                      <div className="order-date">{formatDate(order.createdAt)}</div>
+                      <div className="order-date">{formatDate(order.orderDate)}</div>
                     </div>
                     <div className="order-actions">
-                      <div className="order-total">${order.total?.toFixed(2) || '0.00'}</div>
+                      <div className="order-total">${order.totalPrice?.toFixed(2)}</div>
                       <select 
                         value={order.status} 
                         onChange={(e) => updateStatus(order._id, e.target.value)} 
                         className="status-select"
                       >
-                        <option value="Processing">Processing</option>
+                        <option value="Pending">Pending</option>
                         <option value="Shipped">Shipped</option>
                         <option value="Delivered">Delivered</option>
                         <option value="Cancelled">Cancelled</option>

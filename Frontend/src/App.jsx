@@ -5,7 +5,9 @@ import RegisterPage from './Pages/RegisterPage'
 import SellerDashboard from './Pages/SellerDashboard'
 import CheckoutPage from './Pages/CheckoutPage'
 import OrdersPage from './Pages/OrdersPage'
+import ProfilePage from './Pages/ProfilePage'
 import TopNav from './components/TopNav';
+import { ToastProvider } from './components/ToastContext';
 import './App.css'
 
 function App() {
@@ -21,6 +23,7 @@ function App() {
       JSON.parse(localStorage.getItem("User")) || null
     );
     const [searchQuery, setSearchQuery] = useState('');
+    const [productsRefreshTrigger, setProductsRefreshTrigger] = useState(0);
 
   const handleNavigation = (page) => {
     console.log("Navigating to:", page);
@@ -47,6 +50,15 @@ function App() {
     handleNavigation('home');
   }
 
+  const handleUserUpdate = (updatedUser) => {
+    setUser(updatedUser);
+    localStorage.setItem("User", JSON.stringify(updatedUser));
+  }
+
+  const handleProductsRefresh = () => {
+    setProductsRefreshTrigger(prev => prev + 1);
+  }
+
   const handleStartShopping = () => {
     if (!isLoggedIn) {
       handleNavigation('login');
@@ -67,78 +79,104 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      {/* show TopNav except login/register */}
-      {currentPage !== 'login' && currentPage !== 'register' && (
-        <TopNav
-          isLoggedIn={isLoggedIn}
-          user={user}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onNavigate={handleNavigation}
-          onLogout={handleLogout}
-        />
-      )}
-
-      <main className="main-content">
-        {currentPage === 'home' && (
-          <HomePage
-            onNavigate={handleNavigation}
-            onStartShopping={handleStartShopping}
-            onGoToSellerDashboard={handleGoToSellerDashboard} // Pass the handler
+    <ToastProvider>
+      <div className="app-container">
+        {/* show TopNav except login/register */}
+        {currentPage !== 'login' && currentPage !== 'register' && (
+          <TopNav
             isLoggedIn={isLoggedIn}
             user={user}
-          />
-        )}
-
-        {currentPage === 'login' && (
-          <MarketplaceLogin
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
             onNavigate={handleNavigation}
-            onLogin={handleLogin}
+            onLogout={handleLogout}
           />
         )}
 
-        {currentPage === 'register' && (
-          <RegisterPage onNavigate={handleNavigation} />
-        )}
+        <main className="main-content">
+          {currentPage === 'home' && (
+            <HomePage
+              onNavigate={handleNavigation}
+              onStartShopping={handleStartShopping}
+              onGoToSellerDashboard={handleGoToSellerDashboard} // Pass the handler
+              isLoggedIn={isLoggedIn}
+              user={user}
+              refreshTrigger={productsRefreshTrigger}
+            />
+          )}
 
-        {/* Protected pages - only for logged in users */}
-        {isLoggedIn && (
-          <>
-            {currentPage === 'checkout' && (
-              <CheckoutPage 
-                onNavigate={handleNavigation}
-              />
-            )}
-            {currentPage === 'orders' && (
-              <OrdersPage 
-                onNavigate={handleNavigation}
-              />
-            )}
-            {currentPage === 'seller' && (
-              <SellerDashboard 
-                onNavigate={handleNavigation}
-              />
-            )}
-          </>
-        )}
+          {currentPage === 'login' && (
+            <MarketplaceLogin
+              onNavigate={handleNavigation}
+              onLogin={handleLogin}
+            />
+          )}
 
-        {/* If user tries to access protected page without login */}
-        {!isLoggedIn && (currentPage === 'checkout' || currentPage === 'orders' || currentPage === 'seller') && (
-          <div className="login-required">
-            <h2>Login Required</h2>
-            <p>Please login to access this page</p>
-            <button 
-              onClick={() => handleNavigation('login')}
-              className="btn-primary"
-            >
-              Go to Login
-            </button>
-          </div>
-        )}
-      </main>
-    </div>
-  )
+          {currentPage === 'register' && (
+            <RegisterPage onNavigate={handleNavigation} />
+          )}
+
+          {/* Protected pages - only for logged in users */}
+          {isLoggedIn && (
+            <>
+              {currentPage === 'checkout' && (
+                <CheckoutPage
+                  user={user}
+                  onNavigate={handleNavigation}
+                />
+              )}
+              {currentPage === 'orders' && (
+                <OrdersPage
+                  user={user}
+                  onNavigate={handleNavigation}
+                />
+              )}
+              {currentPage === 'profile' && (
+                <ProfilePage
+                  user={user}
+                  onNavigate={handleNavigation}
+                  onUserUpdate={handleUserUpdate}
+                />
+              )}
+              {currentPage === 'seller' && (
+                <SellerDashboard
+                  user={user}
+                  onNavigate={handleNavigation}
+                  onProductsRefresh={handleProductsRefresh}
+                />
+              )}
+            </>
+          )}
+
+          {/* If user tries to access protected page without login */}
+          {!isLoggedIn && (currentPage === 'checkout' || currentPage === 'orders' || currentPage === 'seller') && (
+            <div className="login-required">
+              <h2>Login Required</h2>
+              <p>Please login to access this page</p>
+              <button
+                onClick={() => handleNavigation('login')}
+                className="btn-primary"
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
+          {(!isLoggedIn && currentPage === 'profile') && (
+            <div className="login-required">
+              <h2>Login Required</h2>
+              <p>Please login to access this page</p>
+              <button
+                onClick={() => handleNavigation('login')}
+                className="btn-primary"
+              >
+                Go to Login
+              </button>
+            </div>
+          )}
+        </main>
+      </div>
+    </ToastProvider>
+  );
 }
 
 export default App

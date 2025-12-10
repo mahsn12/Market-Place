@@ -18,7 +18,7 @@ export const createProduct = async (req, res) => {
       category,
       condition,
       images,
-      location
+      locationString: location
     });
 
     return res.status(201).json({
@@ -47,7 +47,13 @@ export const updateProduct = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, {...req.body , lastModfied:Date.now()} , {
+    const updateData = { ...req.body, lastModfied: Date.now() };
+    if (req.body.location) {
+      updateData.locationString = req.body.location;
+      delete updateData.location;
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true
     });
@@ -128,6 +134,24 @@ export const filterAndSearch = async (req, res) => {
 
     return res.status(200).json(results);
 
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
+  }
+};
+
+export const getProductsBySeller = async (req, res) => {
+  try {
+    const sellerId = req.params.sellerId;
+
+    if (!sellerId) {
+      return res.status(400).json({ message: "Seller ID is required" });
+    }
+
+    const products = await Product.find({ sellerId })
+      .populate("sellerId", "name email profileImage")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ message: "Products retrieved", result: products });
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }

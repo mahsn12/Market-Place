@@ -59,17 +59,10 @@ const productSchema = new mongoose.Schema(
       default: "used"
     },
 
-    // search bs bl location
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point"
-      },
-      coordinates: {
-        type: [Number], // [lng, lat]
-        default: undefined
-      }
+    locationString: {
+      type: String,
+      required: true,
+      index: true
     },
     lastModfied:{
       type:Date,
@@ -106,9 +99,6 @@ const productSchema = new mongoose.Schema(
 
 // mn chatgpt bs azon bta3t search fel name w description
 productSchema.index({ name: "text", description: "text" });
-
-// mnn brdo chatgpt bta3et location
-productSchema.index({ location: "2dsphere" });
 
 const Product = mongoose.model("Product", productSchema);
 export default Product;
