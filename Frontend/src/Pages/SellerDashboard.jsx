@@ -1,34 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import '../Style/SellerDashboard.css';
-import { getProductsBySeller, createProduct, deleteProduct as deleteProductApi } from '../apis/Productsapi';
-import { getOrdersBySeller, updateOrderStatus } from '../apis/Orders';
-import { useToast } from '../components/ToastContext';
+import React, { useEffect, useState } from "react";
+import "../Style/SellerDashboard.css";
+import {
+  getProductsBySeller,
+  createProduct,
+  deleteProduct as deleteProductApi,
+} from "../apis/Productsapi";
+import { getOrdersBySeller, updateOrderStatus } from "../apis/Orders";
+import { useToast } from "../components/ToastContext";
 
-export default function SellerDashboard({ user, onNavigate, onProductsRefresh }) {
+export default function SellerDashboard({
+  user,
+  onNavigate,
+  onProductsRefresh,
+}) {
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
-  const [metrics, setMetrics] = useState({ revenue: 0, orders: 0, pending: 0, products: 0 });
+  const [metrics, setMetrics] = useState({
+    revenue: 0,
+    orders: 0,
+    pending: 0,
+    products: 0,
+  });
   const [loading, setLoading] = useState(false);
   const { showSuccess, showError, showWarning } = useToast();
   const [newProduct, setNewProduct] = useState({
-    name: '',
-    price: '',
-    category: '',
-    description: '',
-    stock: '',
-    location: '',
-    images: []
+    name: "",
+    price: "",
+    category: "",
+    description: "",
+    stock: "",
+    location: "",
+    images: [],
   });
 
   const formatDate = (timestamp) => {
-    if (!timestamp) return 'N/A';
+    if (!timestamp) return "N/A";
     const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -38,20 +51,25 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
 
   const loadSellerData = async () => {
     if (!user?.id) return;
-    
+
     setLoading(true);
     try {
       const [productsRes, ordersRes] = await Promise.all([
         getProductsBySeller(user.id),
-        getOrdersBySeller(user.id)
+        getOrdersBySeller(user.id),
       ]);
 
       const sellerProducts = productsRes.result || [];
       const sellerOrders = ordersRes.result || [];
 
       // Calculate metrics
-      const totalRevenue = sellerOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
-      const pendingCount = sellerOrders.filter(o => o.status === 'Pending').length;
+      const totalRevenue = sellerOrders.reduce(
+        (sum, order) => sum + (order.totalPrice || 0),
+        0
+      );
+      const pendingCount = sellerOrders.filter(
+        (o) => o.status === "Pending"
+      ).length;
 
       setProducts(sellerProducts);
       setOrders(sellerOrders);
@@ -59,10 +77,10 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
         revenue: totalRevenue,
         orders: sellerOrders.length,
         pending: pendingCount,
-        products: sellerProducts.length
+        products: sellerProducts.length,
       });
     } catch (e) {
-      console.error('Failed to load seller data:', e);
+      console.error("Failed to load seller data:", e);
       setOrders([]);
       setProducts([]);
       setMetrics({ revenue: 0, orders: 0, pending: 0, products: 0 });
@@ -76,7 +94,7 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
       await updateOrderStatus(orderId, { status: newStatus });
       loadSellerData(); // Reload data
     } catch (e) {
-      console.error('Error updating order status:', e);
+      console.error("Error updating order status:", e);
     }
   };
 
@@ -84,8 +102,9 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
     const files = Array.from(e.target.files);
     const newImages = [];
 
-    files.forEach(file => {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    files.forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         showWarning(`File ${file.name} is too large. Maximum size is 5MB.`);
         return;
       }
@@ -94,9 +113,9 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
       reader.onload = () => {
         newImages.push(reader.result);
         if (newImages.length === files.length) {
-          setNewProduct(prev => ({
+          setNewProduct((prev) => ({
             ...prev,
-            images: [...prev.images, ...newImages]
+            images: [...prev.images, ...newImages],
           }));
         }
       };
@@ -105,28 +124,35 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
   };
 
   const removeImage = (index) => {
-    setNewProduct(prev => ({
+    setNewProduct((prev) => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: prev.images.filter((_, i) => i !== index),
     }));
   };
 
   const addImageUrl = () => {
-    const url = prompt('Enter image URL:');
+    const url = prompt("Enter image URL:");
     if (url && url.trim()) {
-      setNewProduct(prev => ({
+      setNewProduct((prev) => ({
         ...prev,
-        images: [...prev.images, url.trim()]
+        images: [...prev.images, url.trim()],
       }));
     }
   };
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    
+
     // Validate required fields
-    if (!newProduct.name.trim() || !newProduct.price || !newProduct.category || !newProduct.description.trim() || !newProduct.stock || !newProduct.location.trim()) {
-      showWarning('Please fill in all required fields');
+    if (
+      !newProduct.name.trim() ||
+      !newProduct.price ||
+      !newProduct.category ||
+      !newProduct.description.trim() ||
+      !newProduct.stock ||
+      !newProduct.location.trim()
+    ) {
+      showWarning("Please fill in all required fields");
       return;
     }
 
@@ -134,12 +160,12 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
     const stock = parseInt(newProduct.stock);
 
     if (isNaN(price) || price <= 0) {
-      showWarning('Please enter a valid price');
+      showWarning("Please enter a valid price");
       return;
     }
 
     if (isNaN(stock) || stock < 0) {
-      showWarning('Please enter a valid stock quantity');
+      showWarning("Please enter a valid stock quantity");
       return;
     }
 
@@ -152,19 +178,31 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
         stock: stock,
         location: newProduct.location.trim(),
         images: newProduct.images,
-        condition: 'new'
+        condition: "new",
       };
 
-      console.log('Sending product data:', productData);
+      console.log("Sending product data:", productData);
       await createProduct(productData);
-      
-      setNewProduct({ name: '', price: '', category: '', description: '', stock: '', location: '', images: [] });
+
+      setNewProduct({
+        name: "",
+        price: "",
+        category: "",
+        description: "",
+        stock: "",
+        location: "",
+        images: [],
+      });
       loadSellerData();
       if (onProductsRefresh) onProductsRefresh();
-      showSuccess('Product added successfully!');
+      showSuccess("Product added successfully!");
     } catch (e) {
-      console.error('Error adding product:', e);
-      const errorMessage = e.message || e.error || e.response?.data?.message || 'Failed to add product';
+      console.error("Error adding product:", e);
+      const errorMessage =
+        e.message ||
+        e.error ||
+        e.response?.data?.message ||
+        "Failed to add product";
       showError(`Error: ${errorMessage}`);
     }
   };
@@ -174,8 +212,8 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
       await deleteProductApi(productId);
       loadSellerData(); // Reload products
     } catch (e) {
-      console.error('Error deleting product:', e);
-      showError('Failed to delete product');
+      console.error("Error deleting product:", e);
+      showError("Failed to delete product");
     }
   };
 
@@ -192,7 +230,9 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
           <div className="metrics-grid">
             <div className="metric-card">
               <div className="metric-label">Total Revenue</div>
-              <div className="metric-value">${metrics.revenue?.toFixed(2) || '0.00'}</div>
+              <div className="metric-value">
+                ${metrics.revenue?.toFixed(2) || "0.00"}
+              </div>
             </div>
             <div className="metric-card">
               <div className="metric-label">Total Orders</div>
@@ -217,7 +257,9 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                   type="text"
                   placeholder="Product Name"
                   value={newProduct.name}
-                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, name: e.target.value })
+                  }
                   required
                   className="form-input"
                 />
@@ -225,7 +267,9 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                   type="number"
                   placeholder="Price"
                   value={newProduct.price}
-                  onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, price: e.target.value })
+                  }
                   required
                   className="form-input"
                 />
@@ -233,14 +277,18 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                   type="number"
                   placeholder="Stock Quantity"
                   value={newProduct.stock}
-                  onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                  onChange={(e) =>
+                    setNewProduct({ ...newProduct, stock: e.target.value })
+                  }
                   required
                   className="form-input"
                 />
               </div>
               <select
                 value={newProduct.category}
-                onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, category: e.target.value })
+                }
                 required
                 className="form-input"
               >
@@ -255,14 +303,18 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                 type="text"
                 placeholder="Location (e.g., City, Country)"
                 value={newProduct.location}
-                onChange={(e) => setNewProduct({...newProduct, location: e.target.value})}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, location: e.target.value })
+                }
                 required
                 className="form-input"
               />
               <textarea
                 placeholder="Product Description"
                 value={newProduct.description}
-                onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, description: e.target.value })
+                }
                 required
                 className="form-textarea"
               />
@@ -280,9 +332,13 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                     multiple
                     accept="image/*"
                     onChange={handleImageUpload}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                   />
-                  <button type="button" onClick={addImageUrl} className="url-btn">
+                  <button
+                    type="button"
+                    onClick={addImageUrl}
+                    className="url-btn"
+                  >
                     🔗 Add URL
                   </button>
                 </div>
@@ -291,7 +347,11 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
                   <div className="image-preview-grid">
                     {newProduct.images.map((image, index) => (
                       <div key={index} className="image-preview-item">
-                        <img src={image} alt={`Preview ${index + 1}`} className="preview-image" />
+                        <img
+                          src={image}
+                          alt={`Preview ${index + 1}`}
+                          className="preview-image"
+                        />
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
@@ -320,31 +380,44 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
               </div>
             ) : (
               <div className="products-grid">
-                {products.map(product => (
+                {products.map((product) => (
                   <div key={product._id} className="product-card">
                     <div className="product-image">
-                      <img 
-                        src={product.images?.[0] || ''} 
-                        alt={product.name} 
-                        className="product-img" 
-                        style={{display: product.images?.[0] ? 'block' : 'none'}}
+                      <img
+                        src={product.images?.[0] || ""}
+                        alt={product.name}
+                        className="product-img"
+                        style={{
+                          display: product.images?.[0] ? "block" : "none",
+                        }}
                         onError={(e) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'flex';
+                          e.target.style.display = "none";
+                          e.target.nextSibling.style.display = "flex";
                         }}
                       />
-                      <span className="product-emoji" style={{display: product.images?.[0] ? 'none' : 'flex'}}>
+                      <span
+                        className="product-emoji"
+                        style={{
+                          display: product.images?.[0] ? "none" : "flex",
+                        }}
+                      >
                         📦
                       </span>
                     </div>
                     <div className="product-content">
                       <h4 className="product-name">{product.name}</h4>
-                      <p className="product-description">{product.description}</p>
+                      <p className="product-description">
+                        {product.description}
+                      </p>
                       <div className="product-footer">
-                        <span className="product-price">${product.price.toFixed(2)}</span>
-                        <span className="product-category">{product.category}</span>
+                        <span className="product-price">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        <span className="product-category">
+                          {product.category}
+                        </span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => deleteProduct(product._id)}
                         className="btn-delete"
                       >
@@ -368,32 +441,47 @@ export default function SellerDashboard({ user, onNavigate, onProductsRefresh })
               </div>
             ) : (
               <div className="orders-container">
-                {orders.slice().reverse().map(order => (
-                  <div key={order._id} className="order-row">
-                    <div className="order-info">
-                      <div className="order-id">Order #{order._id.slice(-8)}</div>
-                      <div className="order-items">
-                        {order.products?.length > 0
-                          ? `${order.products.length} item${order.products.length !== 1 ? 's' : ''}: ${order.products.map(i => i.productId?.name || 'Product').join(', ')}`
-                          : 'No items'}
+                {orders
+                  .slice()
+                  .reverse()
+                  .map((order) => (
+                    <div key={order._id} className="order-row">
+                      <div className="order-info">
+                        <div className="order-id">
+                          Order #{order._id.slice(-8)}
+                        </div>
+                        <div className="order-items">
+                          {order.products?.length > 0
+                            ? `${order.products.length} item${
+                                order.products.length !== 1 ? "s" : ""
+                              }: ${order.products
+                                .map((i) => i.productId?.name || "Product")
+                                .join(", ")}`
+                            : "No items"}
+                        </div>
+                        <div className="order-date">
+                          {formatDate(order.orderDate)}
+                        </div>
                       </div>
-                      <div className="order-date">{formatDate(order.orderDate)}</div>
+                      <div className="order-actions">
+                        <div className="order-total">
+                          ${order.totalPrice?.toFixed(2)}
+                        </div>
+                        <select
+                          value={order.status}
+                          onChange={(e) =>
+                            updateStatus(order._id, e.target.value)
+                          }
+                          className="status-select"
+                        >
+                          <option value="Pending">Pending</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
                     </div>
-                    <div className="order-actions">
-                      <div className="order-total">${order.totalPrice?.toFixed(2)}</div>
-                      <select 
-                        value={order.status} 
-                        onChange={(e) => updateStatus(order._id, e.target.value)} 
-                        className="status-select"
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Shipped">Shipped</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             )}
           </section>

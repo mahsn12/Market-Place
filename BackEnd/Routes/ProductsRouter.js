@@ -6,7 +6,7 @@ import {
   getProduct,
   filterAndSearch,
   reportProduct,
-  getProductsBySeller
+  getProductsBySeller,
 } from "../Controller/ProductController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 

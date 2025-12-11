@@ -8,14 +8,11 @@ export const loginUser = (data) =>
   api("/api/users/login", { method: "POST", body: data });
 
 // USERS
-export const getAllUsers = () =>
-  api("/api/users/all");
+export const getAllUsers = () => api("/api/users/all");
 
-export const getUserProfile = (id) =>
-  api(`/api/users/profile/${id}`);
+export const getUserProfile = (id) => api(`/api/users/profile/${id}`);
 
-export const searchUsers = (query) =>
-  api(`/api/users/search/${query}`);
+export const searchUsers = (query) => api(`/api/users/search/${query}`);
 
 export const updateUser = (id, data) =>
   api(`/api/users/update/${id}`, { method: "PATCH", body: data });

@@ -1,43 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import '../Style/ProfilePage.css';
-import { getUserProfile, updateUser, deleteUser } from '../apis/Userapi';
-import { useToast } from '../components/ToastContext';
+import React, { useEffect, useState } from "react";
+import "../Style/ProfilePage.css";
+import { getUserProfile, updateUser, deleteUser } from "../apis/Userapi";
+import { useToast } from "../components/ToastContext";
 
-const splitName = (fullName = '') => {
+const splitName = (fullName = "") => {
   const parts = fullName.trim().split(/\s+/).filter(Boolean);
   return {
-    firstName: parts[0] || '',
-    lastName: parts.slice(1).join(' ') || ''
+    firstName: parts[0] || "",
+    lastName: parts.slice(1).join(" ") || "",
   };
 };
 
-const splitPhone = (phone = '') => {
+const splitPhone = (phone = "") => {
   const match = phone.trim().match(/^\+?(\d{1,3})\s*(.*)$/);
-  if (!match) return { countryCode: '+1', phoneNumber: '' };
+  if (!match) return { countryCode: "+1", phoneNumber: "" };
   return {
     countryCode: `+${match[1]}`,
-    phoneNumber: match[2]?.trim() || ''
+    phoneNumber: match[2]?.trim() || "",
   };
 };
 
 export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
   const [profile, setProfile] = useState(user || null);
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    profileImage: '',
-    password: ''
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    profileImage: "",
+    password: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletePassword, setDeletePassword] = useState('');
-  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState("");
   const { showSuccess, showError, showWarning } = useToast();
   const [deleting, setDeleting] = useState(false);
 
@@ -45,26 +45,26 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
     const fetchProfile = async () => {
       try {
         if (!user?.id) {
-          setError('No user found. Please log in again.');
+          setError("No user found. Please log in again.");
           setLoading(false);
           return;
         }
 
         const res = await getUserProfile(user.id);
         const data = res.result || res.user || res; // fallback just in case
-        const { firstName, lastName } = splitName(data.name || '');
+        const { firstName, lastName } = splitName(data.name || "");
         setProfile(data);
         setFormData({
           firstName,
           lastName,
-          email: data.email || '',
-          phone: data.phone || '',
-          profileImage: data.profileImage || '',
-          password: ''
+          email: data.email || "",
+          phone: data.phone || "",
+          profileImage: data.profileImage || "",
+          password: "",
         });
-        setUploadedFileName('');
+        setUploadedFileName("");
       } catch (err) {
-        setError(err.message || 'Failed to load profile');
+        setError(err.message || "Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -93,8 +93,8 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
     e.preventDefault();
     if (!user?.id) return;
     setSaving(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     const fullName = `${formData.firstName} ${formData.lastName}`.trim();
 
@@ -113,20 +113,20 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
       const res = await updateUser(user.id, payload);
       const updated = res.result || res.user || payload;
       setProfile(updated);
-      setSuccess('Profile updated');
+      setSuccess("Profile updated");
       const { firstName, lastName } = splitName(updated.name || fullName);
       setFormData((prev) => ({
         ...prev,
         firstName,
         lastName,
         phone: updated.phone || formData.phone,
-        password: ''
+        password: "",
       }));
       const newUser = { ...user, ...updated };
-      localStorage.setItem('User', JSON.stringify(newUser));
+      localStorage.setItem("User", JSON.stringify(newUser));
       if (onUserUpdate) onUserUpdate(newUser);
     } catch (err) {
-      setError(err.message || 'Update failed');
+      setError(err.message || "Update failed");
     } finally {
       setSaving(false);
     }
@@ -134,11 +134,11 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
 
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
-      showWarning('Please enter your password');
+      showWarning("Please enter your password");
       return;
     }
 
-    if (deleteConfirm !== 'DELETE') {
+    if (deleteConfirm !== "DELETE") {
       showWarning('Please type "DELETE" to confirm');
       return;
     }
@@ -146,21 +146,25 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
     try {
       setDeleting(true);
       await deleteUser(user.id, deletePassword.trim());
-      
+
       // Clear local storage and redirect to login
-      localStorage.removeItem('User');
-      localStorage.removeItem('cart');
-      showSuccess('Account deleted successfully');
-      onNavigate('login');
+      localStorage.removeItem("User");
+      localStorage.removeItem("cart");
+      showSuccess("Account deleted successfully");
+      onNavigate("login");
     } catch (err) {
-      console.error('Delete account error:', err);
-      const errorMessage = err.message || err.error || err.response?.data?.message || 'Failed to delete account';
+      console.error("Delete account error:", err);
+      const errorMessage =
+        err.message ||
+        err.error ||
+        err.response?.data?.message ||
+        "Failed to delete account";
       showError(`Error: ${errorMessage}`);
     } finally {
       setDeleting(false);
       setShowDeleteModal(false);
-      setDeletePassword('');
-      setDeleteConfirm('');
+      setDeletePassword("");
+      setDeleteConfirm("");
     }
   };
 
@@ -169,7 +173,9 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
       <div className="profile-guard">
         <h2>Login required</h2>
         <p>You need to sign in to view your profile.</p>
-        <button className="btn-primary" onClick={() => onNavigate('login')}>Go to Login</button>
+        <button className="btn-primary" onClick={() => onNavigate("login")}>
+          Go to Login
+        </button>
       </div>
     );
   }
@@ -188,7 +194,9 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
             <h1 className="profile-title">Account settings</h1>
           </div>
           <div className="profile-actions">
-            <button className="ghost" onClick={() => onNavigate('home')}>Back home</button>
+            <button className="ghost" onClick={() => onNavigate("home")}>
+              Back home
+            </button>
           </div>
         </div>
 
@@ -198,13 +206,19 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
           <form className="profile-card" onSubmit={handleSave}>
             <div className="profile-top">
               <img
-                src={formData.profileImage || 'https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-user-profile-button-for-web-and-mobile-design-vector-png-image_41767880.jpg'}
+                src={
+                  formData.profileImage ||
+                  "https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-user-profile-button-for-web-and-mobile-design-vector-png-image_41767880.jpg"
+                }
                 alt="Profile"
                 className="profile-avatar"
               />
               <div className="profile-summary">
-                <h3>{`${formData.firstName} ${formData.lastName}`.trim() || 'Your name'}</h3>
-                <p>{formData.email || 'Email'}</p>
+                <h3>
+                  {`${formData.firstName} ${formData.lastName}`.trim() ||
+                    "Your name"}
+                </h3>
+                <p>{formData.email || "Email"}</p>
                 {profile?.verified && <span className="chip">Verified</span>}
               </div>
             </div>
@@ -252,15 +266,20 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
               <label className="field">
                 <span>Profile image</span>
                 <div className="upload-row">
-                  <label htmlFor="profile-image-upload" className="upload-button">
-                    {uploadedFileName ? `File: ${uploadedFileName}` : 'Choose Image File'}
+                  <label
+                    htmlFor="profile-image-upload"
+                    className="upload-button"
+                  >
+                    {uploadedFileName
+                      ? `File: ${uploadedFileName}`
+                      : "Choose Image File"}
                   </label>
                   <input
                     type="file"
                     accept="image/*"
                     id="profile-image-upload"
                     onChange={handleImageUpload}
-                    style={{ display: 'none' }}
+                    style={{ display: "none" }}
                   />
                   <input
                     type="url"
@@ -289,7 +308,7 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
               {error && <div className="alert error">{error}</div>}
               {success && <div className="alert success">{success}</div>}
               <button className="primary" type="submit" disabled={saving}>
-                {saving ? 'Saving…' : 'Save changes'}
+                {saving ? "Saving…" : "Save changes"}
               </button>
             </div>
           </form>
@@ -299,10 +318,11 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
         <div className="danger-zone">
           <h3 className="danger-title">Danger Zone</h3>
           <p className="danger-description">
-            Once you delete your account, there is no going back. This action cannot be undone.
+            Once you delete your account, there is no going back. This action
+            cannot be undone.
           </p>
-          <button 
-            className="delete-account-btn" 
+          <button
+            className="delete-account-btn"
             onClick={() => setShowDeleteModal(true)}
           >
             Delete Account
@@ -312,11 +332,15 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
 
       {/* Delete Account Modal */}
       {showDeleteModal && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteModal(false)}
+        >
           <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Delete Account</h3>
             <p className="warning-text">
-              This action will permanently delete your account and all associated data including:
+              This action will permanently delete your account and all
+              associated data including:
             </p>
             <ul className="delete-list">
               <li>Your profile information</li>
@@ -325,9 +349,7 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
               <li>All your orders (as buyer and seller)</li>
               <li>Your shopping cart</li>
             </ul>
-            <p className="warning-text strong">
-              This action cannot be undone.
-            </p>
+            <p className="warning-text strong">This action cannot be undone.</p>
 
             <div className="delete-form">
               <label>
@@ -352,19 +374,23 @@ export default function ProfilePage({ user, onNavigate, onUserUpdate }) {
             </div>
 
             <div className="modal-actions">
-              <button 
-                className="cancel-btn" 
+              <button
+                className="cancel-btn"
                 onClick={() => setShowDeleteModal(false)}
                 disabled={deleting}
               >
                 Cancel
               </button>
-              <button 
-                className="confirm-delete-btn" 
+              <button
+                className="confirm-delete-btn"
                 onClick={handleDeleteAccount}
-                disabled={deleting || !deletePassword.trim() || deleteConfirm !== 'DELETE'}
+                disabled={
+                  deleting ||
+                  !deletePassword.trim() ||
+                  deleteConfirm !== "DELETE"
+                }
               >
-                {deleting ? 'Deleting...' : 'Delete Account'}
+                {deleting ? "Deleting..." : "Delete Account"}
               </button>
             </div>
           </div>

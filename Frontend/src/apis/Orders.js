@@ -3,11 +3,9 @@ import { api } from "./api";
 export const createOrder = (data) =>
   api("/api/orders/create", { method: "POST", body: data });
 
-export const getAllOrders = () =>
-  api("/api/orders/all");
+export const getAllOrders = () => api("/api/orders/all");
 
-export const getOrderById = (id) =>
-  api(`/api/orders/id/${id}`);
+export const getOrderById = (id) => api(`/api/orders/id/${id}`);
 
 export const updateOrder = (id, data) =>
   api(`/api/orders/update/${id}`, { method: "PUT", body: data });
@@ -24,5 +22,4 @@ export const getOrdersByBuyer = (buyerId) =>
 export const getOrdersBySeller = (sellerId) =>
   api(`/api/orders/seller/${sellerId}`);
 
-export const getSalesSummary = () =>
-  api("/api/orders/seller/analytics");
+export const getSalesSummary = () => api("/api/orders/seller/analytics");

@@ -1,27 +1,27 @@
-import React, { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGoogle, faFacebookF } from '@fortawesome/free-brands-svg-icons';
-import '../Style/RegisterPage.css';
+import React, { useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGoogle, faFacebookF } from "@fortawesome/free-brands-svg-icons";
+import "../Style/RegisterPage.css";
 
 // IMPORT THE API
 import { registerUser } from "../apis/Userapi";
-import { useToast } from '../components/ToastContext';
+import { useToast } from "../components/ToastContext";
 
 function RegisterPage({ onNavigate }) {
   const { showSuccess, showError } = useToast();
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phone: '' // NEW FIELD
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    phone: "", // NEW FIELD
   });
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -35,17 +35,16 @@ function RegisterPage({ onNavigate }) {
 
     try {
       const res = await registerUser({
-        name: `${formData.firstName} ${formData.lastName}`,  // COMBINE NAMES
+        name: `${formData.firstName} ${formData.lastName}`, // COMBINE NAMES
         email: formData.email,
         password: formData.password,
-        role: formData.userType,   // BACKEND WANTS "role"
-        phone: formData.phone      // SEND PHONE
+        role: formData.userType, // BACKEND WANTS "role"
+        phone: formData.phone, // SEND PHONE
       });
 
       showSuccess("Registration successful!");
 
       if (onNavigate) onNavigate("login");
-
     } catch (err) {
       showError("Registration failed: " + err.message);
     }
@@ -78,7 +77,7 @@ function RegisterPage({ onNavigate }) {
                 placeholder="Enter your first name"
               />
             </div>
-            
+
             <div className="input-group">
               <label>Last Name</label>
               <input
@@ -150,14 +149,19 @@ function RegisterPage({ onNavigate }) {
           <div className="form-options">
             <label className="checkbox">
               <input type="checkbox" required />
-              <span>I agree to the <a href="#terms">Terms of Service</a> and <a href="#privacy">Privacy Policy</a></span>
+              <span>
+                I agree to the <a href="#terms">Terms of Service</a> and{" "}
+                <a href="#privacy">Privacy Policy</a>
+              </span>
             </label>
           </div>
 
           <button type="submit" className="register-btn">
             Create Account
           </button>
-          <p className="helper-text">We’ll verify your email and phone for account security.</p>
+          <p className="helper-text">
+            We’ll verify your email and phone for account security.
+          </p>
         </form>
 
         <div className="divider">
@@ -177,11 +181,8 @@ function RegisterPage({ onNavigate }) {
 
         <div className="register-footer">
           <p>
-            Already have an account?{' '}
-            <button 
-              onClick={() => onNavigate('login')}
-              className="login-link"
-            >
+            Already have an account?{" "}
+            <button onClick={() => onNavigate("login")} className="login-link">
               Login
             </button>
           </p>

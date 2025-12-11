@@ -289,11 +289,11 @@
   }
 
   .item-qty::before {
-    content: 'Qty: ';
+    content: "Qty: ";
   }
 
   .item-price::before {
-    content: 'Price: ';
+    content: "Price: ";
   }
 }
 
@@ -315,12 +315,10 @@
   text-decoration: none;
 }
 
-
 .orders-main .back-to-shopping {
   border-bottom: 1px solid #eee;
   padding-bottom: 15px;
 }
-
 
 .empty-state .back-to-shopping {
   border: none;

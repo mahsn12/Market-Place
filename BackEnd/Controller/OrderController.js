@@ -21,11 +21,15 @@ async function calculateTotalPrice(products) {
 
 async function validateAndReserveStock(products) {
   for (const item of products) {
-    const prod = await Product.findById(item.productId).select("stock status sellerId");
+    const prod = await Product.findById(item.productId).select(
+      "stock status sellerId"
+    );
     if (!prod) throw new Error(`Product not found: ${item.productId}`);
-    if (prod.status === "sold") throw new Error(`Product already sold: ${item.productId}`);
+    if (prod.status === "sold")
+      throw new Error(`Product already sold: ${item.productId}`);
     if (typeof prod.stock === "number") {
-      if (prod.stock < item.quantity) throw new Error(`Insufficient stock for product ${item.productId}`);
+      if (prod.stock < item.quantity)
+        throw new Error(`Insufficient stock for product ${item.productId}`);
       prod.stock -= item.quantity;
       if (prod.stock === 0) prod.status = "sold";
       await prod.save();
@@ -34,14 +38,22 @@ async function validateAndReserveStock(products) {
 }
 
 // Create Order (transactional) — reserves inventory and writes timeline
-export const createOrder = async (request, response) => { 
+export const createOrder = async (request, response) => {
   // TLDR: Creates an order transactionally, reserves stock, logs initial timeline, and prepares for payment.
   try {
     const { sellerId, products } = request.body;
     const buyerId = request.user.id;
 
-    if (!buyerId || !sellerId || !products || !Array.isArray(products) || products.length === 0) {
-      return response.status(400).json({ message: "sellerId and products[] are required" });
+    if (
+      !buyerId ||
+      !sellerId ||
+      !products ||
+      !Array.isArray(products) ||
+      products.length === 0
+    ) {
+      return response
+        .status(400)
+        .json({ message: "sellerId and products[] are required" });
     }
 
     const buyer = await User.findById(buyerId);
@@ -63,18 +75,29 @@ export const createOrder = async (request, response) => {
       paid: false,
       refunded: false,
       paymentInfo: {},
-      timeline: [{ status: "Pending", date: new Date(), by: buyerId }]
+      timeline: [{ status: "Pending", date: new Date(), by: buyerId }],
     });
 
     await order.save();
 
     // TODO: Integrate payment (e.g., create a Stripe Checkout session). Return payment instructions to client.
-    const payment = { provider: "stripe", clientSecret: null, checkoutUrl: null };
+    const payment = {
+      provider: "stripe",
+      clientSecret: null,
+      checkoutUrl: null,
+    };
 
     // Optionally fire notification to seller
     // notifySellerOrderCreated(sellerId, order);
 
-    return response.status(201).json({ message: "Order created successfully", orderId: order._id, payment, result: order });
+    return response
+      .status(201)
+      .json({
+        message: "Order created successfully",
+        orderId: order._id,
+        payment,
+        result: order,
+      });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -102,7 +125,15 @@ export const getAllOrders = async (request, response) => {
 
     const total = await Order.countDocuments(filter);
 
-    return response.status(200).json({ message: "Orders retrieved", page: Number(page), limit: Number(limit), total, result: orders });
+    return response
+      .status(200)
+      .json({
+        message: "Orders retrieved",
+        page: Number(page),
+        limit: Number(limit),
+        total,
+        result: orders,
+      });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -117,7 +148,8 @@ export const getOrderById = async (request, response) => {
       .populate("sellerId", "name email")
       .populate("products.productId", "name price stock");
 
-    if (!order) return response.status(404).json({ message: "Order not found" });
+    if (!order)
+      return response.status(404).json({ message: "Order not found" });
 
     return response.status(200).json({ message: "Order found", result: order });
   } catch (e) {
@@ -136,10 +168,16 @@ export const updateOrder = async (request, response) => {
       updates.totalPrice = await calculateTotalPrice(updates.products);
     }
 
-    const updated = await Order.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
-    if (!updated) return response.status(404).json({ message: "Order not found" });
+    const updated = await Order.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    });
+    if (!updated)
+      return response.status(404).json({ message: "Order not found" });
 
-    return response.status(200).json({ message: "Order updated", result: updated });
+    return response
+      .status(200)
+      .json({ message: "Order updated", result: updated });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -173,7 +211,8 @@ export const updateOrderStatus = async (request, response) => {
 
     // Naive permission checks — replace with real auth in production
     if (status === "Shipped") {
-      if (!actorId || actorId.toString() !== order.sellerId.toString()) throw new Error("Only seller can mark as Shipped");
+      if (!actorId || actorId.toString() !== order.sellerId.toString())
+        throw new Error("Only seller can mark as Shipped");
     }
 
     if (status === "Cancelled") {
@@ -208,7 +247,9 @@ export const updateOrderStatus = async (request, response) => {
 
     // emitOrderEvent(order, status);
 
-    return response.status(200).json({ message: "Order status updated", result: order });
+    return response
+      .status(200)
+      .json({ message: "Order status updated", result: order });
   } catch (e) {
     await session.abortTransaction();
     session.endSession();
@@ -224,15 +265,25 @@ export const deleteOrder = async (request, response) => {
     const { actorId } = request.body;
 
     const order = await Order.findById(id);
-    if (!order) return response.status(404).json({ message: "Order not found" });
+    if (!order)
+      return response.status(404).json({ message: "Order not found" });
 
-    if (order.status === "Shipped" && (!actorId || actorId !== order.sellerId.toString())) {
-      return response.status(403).json({ message: "Cannot delete an order that has been shipped" });
+    if (
+      order.status === "Shipped" &&
+      (!actorId || actorId !== order.sellerId.toString())
+    ) {
+      return response
+        .status(403)
+        .json({ message: "Cannot delete an order that has been shipped" });
     }
 
     order.status = "Cancelled";
     order.timeline = order.timeline || [];
-    order.timeline.push({ status: 'Cancelled', date: new Date(), by: actorId || null });
+    order.timeline.push({
+      status: "Cancelled",
+      date: new Date(),
+      by: actorId || null,
+    });
     await order.save();
 
     for (const item of order.products) {
@@ -246,7 +297,9 @@ export const deleteOrder = async (request, response) => {
 
     // enqueue refund job if needed
 
-    return response.status(200).json({ message: "Order cancelled and stock restored", result: order });
+    return response
+      .status(200)
+      .json({ message: "Order cancelled and stock restored", result: order });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -256,8 +309,13 @@ export const getOrdersByBuyer = async (request, response) => {
   // TLDR: Returns all orders placed by a specific buyer.
   try {
     const { buyerId } = request.params;
-    const orders = await Order.find({ buyerId }).populate("products.productId", "name price");
-    return response.status(200).json({ message: "Orders for buyer", result: orders });
+    const orders = await Order.find({ buyerId }).populate(
+      "products.productId",
+      "name price"
+    );
+    return response
+      .status(200)
+      .json({ message: "Orders for buyer", result: orders });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -267,8 +325,13 @@ export const getOrdersBySeller = async (request, response) => {
   // TLDR: Returns all orders that belong to a seller.
   try {
     const { sellerId } = request.params;
-    const orders = await Order.find({ sellerId }).populate("products.productId", "name price");
-    return response.status(200).json({ message: "Orders for seller", result: orders });
+    const orders = await Order.find({ sellerId }).populate(
+      "products.productId",
+      "name price"
+    );
+    return response
+      .status(200)
+      .json({ message: "Orders for seller", result: orders });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -280,18 +343,18 @@ export const paymentWebhook = async (request, response) => {
   try {
     const event = request.body; // verify signature in production
 
-    if (event.type === 'payment_intent.succeeded') {
+    if (event.type === "payment_intent.succeeded") {
       const orderId = event.data?.object?.metadata?.orderId;
       if (orderId) {
         const order = await Order.findById(orderId);
         if (order) {
           order.paid = true;
           order.paymentInfo = order.paymentInfo || {};
-          order.paymentInfo.provider = 'stripe';
+          order.paymentInfo.provider = "stripe";
           order.paymentInfo.providerId = event.data.object.id;
-          order.paymentInfo.status = 'succeeded';
+          order.paymentInfo.status = "succeeded";
           order.timeline = order.timeline || [];
-          order.timeline.push({ status: 'Paid', date: new Date(), by: null });
+          order.timeline.push({ status: "Paid", date: new Date(), by: null });
           await order.save();
           // notify seller/buyer
         }
@@ -309,17 +372,40 @@ export const getSalesSummary = async (request, response) => {
   // TLDR: Returns sales analytics for a seller over a selected time range.
   try {
     const { sellerId, days = 30 } = request.query;
-    if (!sellerId) return response.status(400).json({ message: 'sellerId required' });
+    if (!sellerId)
+      return response.status(400).json({ message: "sellerId required" });
 
     const since = new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000);
 
     const summary = await Order.aggregate([
-      { $match: { sellerId: mongoose.Types.ObjectId(sellerId), orderDate: { $gte: since }, status: { $in: ['Shipped', 'Delivered'] } } },
-      { $unwind: '$products' },
-      { $group: { _id: null, totalOrders: { $sum: 1 }, totalRevenue: { $sum: '$totalPrice' }, totalItems: { $sum: '$products.quantity' } } }
+      {
+        $match: {
+          sellerId: mongoose.Types.ObjectId(sellerId),
+          orderDate: { $gte: since },
+          status: { $in: ["Shipped", "Delivered"] },
+        },
+      },
+      { $unwind: "$products" },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: "$totalPrice" },
+          totalItems: { $sum: "$products.quantity" },
+        },
+      },
     ]);
 
-    return response.status(200).json({ message: 'Sales summary', result: summary[0] || { totalOrders: 0, totalRevenue: 0, totalItems: 0 } });
+    return response
+      .status(200)
+      .json({
+        message: "Sales summary",
+        result: summary[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          totalItems: 0,
+        },
+      });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }

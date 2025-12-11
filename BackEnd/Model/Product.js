@@ -5,94 +5,94 @@ const productSchema = new mongoose.Schema(
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     name: {
       type: String,
       required: true,
-      text: true
+      text: true,
     },
 
     description: {
       type: String,
       required: true,
-      text: true
+      text: true,
     },
 
     price: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
 
     // 5alet el image arrays 3ashan kaza sora
     images: [
       {
         type: String,
-        required: false
-      }
+        required: false,
+      },
     ],
 
     // el stock w el status fel OrderController
     stock: {
       type: Number,
       required: true,
-      min: 0
+      min: 0,
     },
 
     status: {
       type: String,
       enum: ["available", "sold"],
-      default: "available"
+      default: "available",
     },
 
     category: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
 
     condition: {
       type: String,
       enum: ["new", "like new", "used", "refurbished"],
-      default: "used"
+      default: "used",
     },
 
     locationString: {
       type: String,
       required: true,
-      index: true
+      index: true,
     },
-    lastModfied:{
-      type:Date,
-      default:Date.now
+    lastModfied: {
+      type: Date,
+      default: Date.now,
     },
-    // stats w keda 
+    // stats w keda
     views: {
       type: Number,
-      default: 0
+      default: 0,
     },
 
     savedBy: [
       {
-        type : mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
     ],
 
     reports: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         reason: String,
-        date: { type: Date, default: Date.now }
-      }
+        date: { type: Date, default: Date.now },
+      },
     ],
 
     boostedUntil: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   { timestamps: true }
 );

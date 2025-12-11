@@ -4,98 +4,96 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true
+      required: true,
     },
 
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
     },
 
     password: {
       type: String,
       required: true,
-      minlength: 8
+      minlength: 8,
     },
-
 
     profileImage: {
       type: String,
       default:
-        "https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-user-profile-button-for-web-and-mobile-design-vector-png-image_41767880.jpg"
+        "https://png.pngtree.com/png-vector/20221130/ourmid/pngtree-user-profile-button-for-web-and-mobile-design-vector-png-image_41767880.jpg",
     },
 
     phone: {
-      type: String
+      type: String,
     },
 
     // el followers + following
     followers: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
     following: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
     // el rate
     rating: {
       type: Number,
-      default: 0
-    },  
+      default: 0,
+    },
 
-    cart:[
+    cart: [
       {
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Product"
-      }
-    ]
-     ,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
     ratingCount: {
       type: Number,
-      default: 0
+      default: 0,
     },
 
     // el verified
     verified: {
       type: Boolean,
-      default: false
+      default: false,
     },
 
     // el notification tokens
     notificationTokens: [
       {
-        type: String
-      }
+        type: String,
+      },
     ],
 
     // law mesayev 7aga aw wishlist
     savedPosts: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Post"
-      }
+        ref: "Post",
+      },
     ],
 
     savedProducts: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Product"
-      }
+        ref: "Product",
+      },
     ],
 
     // el last seen
     lastActive: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   },
   { timestamps: true }
 );

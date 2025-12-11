@@ -1,32 +1,37 @@
-import React, { useEffect, useState } from 'react';
-import PageLayout from '../components/PageLayout';
-import '../Style/OrdersPage.css';
-import { getOrdersByBuyer, getOrdersBySeller } from '../apis/Orders';
+import React, { useEffect, useState } from "react";
+import PageLayout from "../components/PageLayout";
+import "../Style/OrdersPage.css";
+import { getOrdersByBuyer, getOrdersBySeller } from "../apis/Orders";
 
-export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate prop
+export default function OrdersPage({ user, onNavigate }) {
+  // ADD onNavigate prop
   const [orders, setOrders] = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState('buyer'); // 'buyer' or 'seller'
+  const [view, setView] = useState("buyer"); // 'buyer' or 'seller'
 
   useEffect(() => {
     const fetchOrders = async () => {
       if (!user?.id) return;
-      
+
       setLoading(true);
       try {
         let response;
-        if (view === 'buyer') {
+        if (view === "buyer") {
           response = await getOrdersByBuyer(user.id);
         } else {
           response = await getOrdersBySeller(user.id);
         }
         const fetchedOrders = response.result || [];
         // Sort by newest first
-        const sorted = fetchedOrders.sort((a, b) => new Date(b.orderDate || b.createdAt) - new Date(a.orderDate || a.createdAt));
+        const sorted = fetchedOrders.sort(
+          (a, b) =>
+            new Date(b.orderDate || b.createdAt) -
+            new Date(a.orderDate || a.createdAt)
+        );
         setOrders(sorted);
       } catch (e) {
-        console.error('Failed to fetch orders:', e);
+        console.error("Failed to fetch orders:", e);
         setOrders([]);
       } finally {
         setLoading(false);
@@ -37,33 +42,38 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
   }, [user, view]);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Processing': return '#ff9800';
-      case 'Shipped': return '#2196f3';
-      case 'Delivered': return '#4caf50';
-      case 'Cancelled': return '#f44336';
-      default: return '#999';
+      case "Processing":
+        return "#ff9800";
+      case "Shipped":
+        return "#2196f3";
+      case "Delivered":
+        return "#4caf50";
+      case "Cancelled":
+        return "#f44336";
+      default:
+        return "#999";
     }
   };
 
   const handleBackToShopping = () => {
     console.log("Back to shopping clicked from OrdersPage");
-    
+
     // Method 1: Use onNavigate prop if available
-    if (onNavigate && typeof onNavigate === 'function') {
+    if (onNavigate && typeof onNavigate === "function") {
       console.log("Using onNavigate prop");
-      onNavigate('home');
-    } 
+      onNavigate("home");
+    }
     // Method 2: Direct approach (fallback)
     else {
       console.log("Using fallback method");
@@ -76,15 +86,15 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
     <PageLayout title="Your Orders">
       <div className="orders-main">
         <div className="orders-tabs">
-          <button 
-            className={`tab-btn ${view === 'buyer' ? 'active' : ''}`}
-            onClick={() => setView('buyer')}
+          <button
+            className={`tab-btn ${view === "buyer" ? "active" : ""}`}
+            onClick={() => setView("buyer")}
           >
             My Purchases
           </button>
-          <button 
-            className={`tab-btn ${view === 'seller' ? 'active' : ''}`}
-            onClick={() => setView('seller')}
+          <button
+            className={`tab-btn ${view === "seller" ? "active" : ""}`}
+            onClick={() => setView("seller")}
           >
             My Sales
           </button>
@@ -98,7 +108,7 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
             <h3>No orders yet</h3>
             <p>Start shopping to place your first order!</p>
             {/* Add another back button in empty state */}
-            <div className="back-to-shopping" style={{ marginTop: '20px' }}>
+            <div className="back-to-shopping" style={{ marginTop: "20px" }}>
               <button
                 className="back-to-shopping-btn"
                 onClick={handleBackToShopping}
@@ -109,18 +119,27 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
           </div>
         ) : (
           <div className="orders-list">
-            {orders.map(order => (
+            {orders.map((order) => (
               <div
                 key={order._id}
-                className={`order-card ${selected?._id === order._id ? 'active' : ''}`}
-                onClick={() => setSelected(selected?._id === order._id ? null : order)}
+                className={`order-card ${
+                  selected?._id === order._id ? "active" : ""
+                }`}
+                onClick={() =>
+                  setSelected(selected?._id === order._id ? null : order)
+                }
               >
                 <div className="order-card-header">
                   <div className="order-id-date">
                     <div className="order-id">Order #{order._id.slice(-8)}</div>
-                    <div className="order-date">{formatDate(order.orderDate)}</div>
+                    <div className="order-date">
+                      {formatDate(order.orderDate)}
+                    </div>
                   </div>
-                  <div className="order-status" style={{ color: getStatusColor(order.status) }}>
+                  <div
+                    className="order-status"
+                    style={{ color: getStatusColor(order.status) }}
+                  >
                     {order.status}
                   </div>
                 </div>
@@ -128,12 +147,18 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
                   <div className="order-items-preview">
                     {order.products?.slice(0, 2).map((item, idx) => (
                       <span key={idx} className="item-preview">
-                        {item.productId?.name || 'Product'} x{item.quantity}
+                        {item.productId?.name || "Product"} x{item.quantity}
                       </span>
                     ))}
-                    {order.products?.length > 2 && <span className="item-preview">+{order.products.length - 2} more</span>}
+                    {order.products?.length > 2 && (
+                      <span className="item-preview">
+                        +{order.products.length - 2} more
+                      </span>
+                    )}
                   </div>
-                  <div className="order-total">Total: ${order.totalPrice?.toFixed(2)}</div>
+                  <div className="order-total">
+                    Total: ${order.totalPrice?.toFixed(2)}
+                  </div>
                 </div>
 
                 {selected?._id === order._id && (
@@ -146,24 +171,36 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
                       </div>
                       <div className="detail-row">
                         <span>Status:</span>
-                        <span className="detail-value" style={{ color: getStatusColor(order.status), fontWeight: 600 }}>
+                        <span
+                          className="detail-value"
+                          style={{
+                            color: getStatusColor(order.status),
+                            fontWeight: 600,
+                          }}
+                        >
                           {order.status}
                         </span>
                       </div>
                       <div className="detail-row">
                         <span>Placed:</span>
-                        <span className="detail-value">{formatDate(order.orderDate)}</span>
+                        <span className="detail-value">
+                          {formatDate(order.orderDate)}
+                        </span>
                       </div>
-                      {view === 'buyer' && order.sellerId && (
+                      {view === "buyer" && order.sellerId && (
                         <div className="detail-row">
                           <span>Seller:</span>
-                          <span className="detail-value">{order.sellerId.name}</span>
+                          <span className="detail-value">
+                            {order.sellerId.name}
+                          </span>
                         </div>
                       )}
-                      {view === 'seller' && order.buyerId && (
+                      {view === "seller" && order.buyerId && (
                         <div className="detail-row">
                           <span>Buyer:</span>
-                          <span className="detail-value">{order.buyerId.name}</span>
+                          <span className="detail-value">
+                            {order.buyerId.name}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -173,9 +210,13 @@ export default function OrdersPage({ user, onNavigate }) { // ADD onNavigate pro
                       <div className="items-table">
                         {order.products?.map((item, idx) => (
                           <div key={idx} className="item-row">
-                            <span className="item-name">{item.productId?.name || 'Product'}</span>
+                            <span className="item-name">
+                              {item.productId?.name || "Product"}
+                            </span>
                             <span className="item-qty">x{item.quantity}</span>
-                            <span className="item-price">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="item-price">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </span>
                           </div>
                         ))}
                       </div>

@@ -180,8 +180,8 @@
   margin: 0;
 }
 
-.number-input input[type=number]::-webkit-inner-spin-button,
-.number-input input[type=number]::-webkit-outer-spin-button {
+.number-input input[type="number"]::-webkit-inner-spin-button,
+.number-input input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 
@@ -204,7 +204,7 @@
 .number-input button:after {
   display: inline-block;
   position: absolute;
-  content: '';
+  content: "";
   height: 2px;
   width: 0.7rem;
   background-color: #495057;
@@ -234,7 +234,7 @@
   width: auto;
 }
 
-.shopping-cart .number-input input[type=number] {
+.shopping-cart .number-input input[type="number"] {
   max-width: 2rem;
   border: none;
   color: #212529 !important;
@@ -460,7 +460,7 @@
   font-family: inherit;
   padding: 0;
   margin: 0;
-  
+
   /* Same hover effect as links */
   transition: color 0.2s ease;
 }

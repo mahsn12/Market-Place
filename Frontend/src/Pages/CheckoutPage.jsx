@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import PageLayout from '../components/PageLayout';
-import '../Style/CheckoutPage.css';
-import { createOrder } from '../apis/Orders';
-import { useToast } from '../components/ToastContext';
+import React, { useEffect, useState } from "react";
+import PageLayout from "../components/PageLayout";
+import "../Style/CheckoutPage.css";
+import { createOrder } from "../apis/Orders";
+import { useToast } from "../components/ToastContext";
 
 export default function CheckoutPage({ user, onNavigate }) {
   const [cart, setCart] = useState([]);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
   const { showSuccess, showError, showWarning } = useToast();
@@ -14,20 +14,23 @@ export default function CheckoutPage({ user, onNavigate }) {
   const [tax, setTax] = useState(0);
   const [total, setTotal] = useState(0);
   const [cardData, setCardData] = useState({
-    cardNumber: '',
-    cardName: '',
-    expiration: '',
-    cvv: ''
+    cardNumber: "",
+    cardName: "",
+    expiration: "",
+    cvv: "",
   });
 
   useEffect(() => {
-    const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(savedCart);
     calculateTotals(savedCart);
   }, []);
 
   const calculateTotals = (cartItems) => {
-    const newSubtotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const newSubtotal = cartItems.reduce(
+      (sum, item) => sum + item.price * item.qty,
+      0
+    );
     const newShipping = newSubtotal > 0 ? 10 : 0;
     const newTax = newSubtotal * 0.1;
     const newTotal = newSubtotal + newShipping + newTax;
@@ -39,38 +42,38 @@ export default function CheckoutPage({ user, onNavigate }) {
   };
 
   const handleQtyChange = (itemId, newQty) => {
-    const updated = cart.map(item =>
+    const updated = cart.map((item) =>
       item._id === itemId ? { ...item, qty: Math.max(1, newQty) } : item
     );
     setCart(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
+    localStorage.setItem("cart", JSON.stringify(updated));
     calculateTotals(updated);
   };
 
   const handleQtyIncrease = (itemId) => {
-    const item = cart.find(i => i._id === itemId);
+    const item = cart.find((i) => i._id === itemId);
     if (item) {
       handleQtyChange(itemId, (item.qty || 1) + 1);
     }
   };
 
   const handleQtyDecrease = (itemId) => {
-    const item = cart.find(i => i._id === itemId);
+    const item = cart.find((i) => i._id === itemId);
     if (item && (item.qty || 1) > 1) {
       handleQtyChange(itemId, (item.qty || 1) - 1);
     }
   };
 
   const handleRemove = (itemId) => {
-    const updated = cart.filter(item => item._id !== itemId);
+    const updated = cart.filter((item) => item._id !== itemId);
     setCart(updated);
-    localStorage.setItem('cart', JSON.stringify(updated));
+    localStorage.setItem("cart", JSON.stringify(updated));
     calculateTotals(updated);
   };
 
   const placeOrder = async () => {
     if (!user?.id) {
-      showWarning('Please log in to place an order');
+      showWarning("Please log in to place an order");
       return;
     }
 
@@ -79,10 +82,10 @@ export default function CheckoutPage({ user, onNavigate }) {
 
       // Group cart items by seller
       const ordersBySeller = {};
-      cart.forEach(item => {
+      cart.forEach((item) => {
         const sellerId = item.sellerId?._id || item.sellerId || item.seller?.id;
         if (!sellerId) {
-          console.error('Product missing sellerId:', item);
+          console.error("Product missing sellerId:", item);
           return;
         }
 
@@ -92,32 +95,38 @@ export default function CheckoutPage({ user, onNavigate }) {
         ordersBySeller[sellerId].push({
           productId: item._id || item.id,
           quantity: item.qty || 1,
-          price: item.price
+          price: item.price,
         });
       });
 
       // Create orders for each seller
-      const orderPromises = Object.entries(ordersBySeller).map(async ([sellerId, products]) => {
-        const orderData = {
-          sellerId: sellerId,
-          products: products
-        };
+      const orderPromises = Object.entries(ordersBySeller).map(
+        async ([sellerId, products]) => {
+          const orderData = {
+            sellerId: sellerId,
+            products: products,
+          };
 
-        return await createOrder(orderData);
-      });
+          return await createOrder(orderData);
+        }
+      );
 
       await Promise.all(orderPromises);
 
-      showSuccess('Order(s) placed successfully!');
+      showSuccess("Order(s) placed successfully!");
       setCart([]);
-      setNote('');
-      setCardData({ cardNumber: '', cardName: '', expiration: '', cvv: '' });
-      localStorage.removeItem('cart');
+      setNote("");
+      setCardData({ cardNumber: "", cardName: "", expiration: "", cvv: "" });
+      localStorage.removeItem("cart");
       calculateTotals([]);
-      onNavigate('orders'); // Redirect to orders page
+      onNavigate("orders"); // Redirect to orders page
     } catch (e) {
-      console.error('Failed to place order:', e);
-      const errorMessage = e.message || e.error || e.response?.data?.message || 'Failed to place order. Please try again.';
+      console.error("Failed to place order:", e);
+      const errorMessage =
+        e.message ||
+        e.error ||
+        e.response?.data?.message ||
+        "Failed to place order. Please try again.";
       showError(`Error: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -126,12 +135,12 @@ export default function CheckoutPage({ user, onNavigate }) {
 
   const handleBackToShopping = () => {
     console.log("Back to shopping clicked");
-    
+
     // Method 1: Use onNavigate prop if available
-    if (onNavigate && typeof onNavigate === 'function') {
+    if (onNavigate && typeof onNavigate === "function") {
       console.log("Using onNavigate prop");
-      onNavigate('home');
-    } 
+      onNavigate("home");
+    }
     // Method 2: Direct approach (fallback)
     else {
       console.log("Using fallback method");
@@ -153,28 +162,35 @@ export default function CheckoutPage({ user, onNavigate }) {
             </div>
           ) : (
             <div className="items-list">
-              {cart.map(item => (
+              {cart.map((item) => (
                 <div key={item.id} className="product-row-card">
                   <div className="product-image">
-                    <img 
-                      src={item.images?.[0] || ''} 
-                      alt={item.name} 
-                      className="product-img" 
-                      style={{display: item.images?.[0] ? 'block' : 'none'}}
+                    <img
+                      src={item.images?.[0] || ""}
+                      alt={item.name}
+                      className="product-img"
+                      style={{ display: item.images?.[0] ? "block" : "none" }}
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
                       }}
                     />
-                    <div className="product-emoji" style={{display: item.images?.[0] ? 'none' : 'flex'}}>
+                    <div
+                      className="product-emoji"
+                      style={{ display: item.images?.[0] ? "none" : "flex" }}
+                    >
                       🛒
                     </div>
                   </div>
                   <div className="product-details">
                     <div className="product-header">
                       <div>
-                        <h5 className="product-name">{item.name || 'Product'}</h5>
-                        <p className="product-color">{item.seller || 'Unknown Seller'}</p>
+                        <h5 className="product-name">
+                          {item.name || "Product"}
+                        </h5>
+                        <p className="product-color">
+                          {item.seller || "Unknown Seller"}
+                        </p>
                       </div>
                       <button
                         onClick={() => handleRemove(item._id)}
@@ -185,7 +201,9 @@ export default function CheckoutPage({ user, onNavigate }) {
                       </button>
                     </div>
                     <div className="product-footer">
-                      <p className="product-price">${(item.price || 0).toFixed(2)}</p>
+                      <p className="product-price">
+                        ${(item.price || 0).toFixed(2)}
+                      </p>
                       <div className="number-input">
                         <button
                           type="button"
@@ -196,7 +214,12 @@ export default function CheckoutPage({ user, onNavigate }) {
                           type="number"
                           min="1"
                           value={item.qty || 1}
-                          onChange={(e) => handleQtyChange(item.id, parseInt(e.target.value) || 1)}
+                          onChange={(e) =>
+                            handleQtyChange(
+                              item.id,
+                              parseInt(e.target.value) || 1
+                            )
+                          }
                         />
                         <button
                           type="button"
@@ -255,7 +278,9 @@ export default function CheckoutPage({ user, onNavigate }) {
                 placeholder="1234 5678 9012 3457"
                 maxLength="19"
                 value={cardData.cardNumber}
-                onChange={(e) => setCardData({ ...cardData, cardNumber: e.target.value })}
+                onChange={(e) =>
+                  setCardData({ ...cardData, cardNumber: e.target.value })
+                }
               />
             </div>
 
@@ -265,7 +290,9 @@ export default function CheckoutPage({ user, onNavigate }) {
                 type="text"
                 placeholder="John Smith"
                 value={cardData.cardName}
-                onChange={(e) => setCardData({ ...cardData, cardName: e.target.value })}
+                onChange={(e) =>
+                  setCardData({ ...cardData, cardName: e.target.value })
+                }
               />
             </div>
 
@@ -277,7 +304,9 @@ export default function CheckoutPage({ user, onNavigate }) {
                   placeholder="MM/YYYY"
                   maxLength="7"
                   value={cardData.expiration}
-                  onChange={(e) => setCardData({ ...cardData, expiration: e.target.value })}
+                  onChange={(e) =>
+                    setCardData({ ...cardData, expiration: e.target.value })
+                  }
                 />
               </div>
               <div className="form-group">
@@ -287,13 +316,16 @@ export default function CheckoutPage({ user, onNavigate }) {
                   placeholder="•••"
                   maxLength="3"
                   value={cardData.cvv}
-                  onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
+                  onChange={(e) =>
+                    setCardData({ ...cardData, cvv: e.target.value })
+                  }
                 />
               </div>
             </div>
 
             <p className="form-disclaimer">
-              By completing this purchase, you agree to our terms and conditions.
+              By completing this purchase, you agree to our terms and
+              conditions.
             </p>
 
             <button
@@ -302,7 +334,7 @@ export default function CheckoutPage({ user, onNavigate }) {
               disabled={cart.length === 0 || loading}
               className="btn-primary"
             >
-              {loading ? 'Processing...' : 'Buy Now'}
+              {loading ? "Processing..." : "Buy Now"}
             </button>
 
             {/* FIXED: Change link to button */}

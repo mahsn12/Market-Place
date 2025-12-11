@@ -27,7 +27,7 @@ export const registerUser = async (request, response) => {
       name,
       email,
       password: hashedPass,
-      phone
+      phone,
     });
 
     await user.save();
@@ -38,16 +38,14 @@ export const registerUser = async (request, response) => {
         id: user._id,
         name: user.name,
         email: user.email,
-      }
+      },
     });
   } catch (e) {
     return response.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
-
-
 
 export const getAllUsers = async (request, response) => {
   try {
@@ -56,15 +54,14 @@ export const getAllUsers = async (request, response) => {
 
     return response.status(200).json({
       message: "All Users retrieved",
-      result: users
+      result: users,
     });
   } catch (e) {
     return response.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
-
 
 export const GetUser = async (request, response) => {
   try {
@@ -75,21 +72,20 @@ export const GetUser = async (request, response) => {
 
     if (!user) {
       return response.status(404).json({
-        message: "User Not Found"
+        message: "User Not Found",
       });
     }
 
     return response.status(200).json({
       message: "User found",
-      result: user
+      result: user,
     });
   } catch (e) {
     return response.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
-
 
 export const UpdateUser = async (request, response) => {
   try {
@@ -107,33 +103,32 @@ export const UpdateUser = async (request, response) => {
 
     const updatedUser = await User.findByIdAndUpdate(id, updates, {
       new: true,
-      runValidators: true
+      runValidators: true,
     }).select("-password");
 
     if (!updatedUser) {
       return response.status(404).json({
-        message: "User Not Found"
+        message: "User Not Found",
       });
     }
 
     return response.status(200).json({
       message: "User Updated",
-      result: updatedUser
+      result: updatedUser,
     });
   } catch (e) {
     return response.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
 
-
 export const DeleteUser = async (request, response) => {
   try {
-    console.log('Delete user request:', {
+    console.log("Delete user request:", {
       params: request.params,
       body: request.body,
-      user: request.user
+      user: request.user,
     });
 
     const { id } = request.params;
@@ -141,16 +136,19 @@ export const DeleteUser = async (request, response) => {
 
     // Verify the user is deleting their own account
     if (request.user.id !== id) {
-      console.log('User ID mismatch:', { requestUserId: request.user.id, paramId: id });
+      console.log("User ID mismatch:", {
+        requestUserId: request.user.id,
+        paramId: id,
+      });
       return response.status(403).json({
-        message: "You can only delete your own account"
+        message: "You can only delete your own account",
       });
     }
 
     // Verify password
     if (!password) {
       return response.status(400).json({
-        message: "Password is required to delete account"
+        message: "Password is required to delete account",
       });
     }
 
@@ -158,7 +156,7 @@ export const DeleteUser = async (request, response) => {
     const user = await User.findById(id);
     if (!user) {
       return response.status(404).json({
-        message: "User Not Found"
+        message: "User Not Found",
       });
     }
 
@@ -166,7 +164,7 @@ export const DeleteUser = async (request, response) => {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return response.status(401).json({
-        message: "Invalid password"
+        message: "Invalid password",
       });
     }
 
@@ -186,15 +184,14 @@ export const DeleteUser = async (request, response) => {
     await User.findByIdAndDelete(id);
 
     return response.status(200).json({
-      message: "Account and all associated data deleted successfully"
+      message: "Account and all associated data deleted successfully",
     });
   } catch (e) {
     return response.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
-
 
 export const searchByNameOrEmail = async (req, res) => {
   try {
@@ -210,18 +207,16 @@ export const searchByNameOrEmail = async (req, res) => {
 
     // Do NOT send 404 for search results
     return res.status(200).json(users);
-
   } catch (e) {
     return res.status(500).json({ message: e.message });
   }
 };
 
-
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if(!email || !password){
+    if (!email || !password) {
       return res.status(400).json({ message: "Missing fields" });
     }
 
@@ -229,7 +224,7 @@ export const loginUser = async (req, res) => {
 
     if (!userFound) {
       return res.status(404).json({
-        message: "User not Found"
+        message: "User not Found",
       });
     }
 
@@ -237,7 +232,7 @@ export const loginUser = async (req, res) => {
 
     if (!valid) {
       return res.status(401).json({
-        message: "Wrong Password"
+        message: "Wrong Password",
       });
     }
 
@@ -250,7 +245,7 @@ export const loginUser = async (req, res) => {
     return res.status(200).json({
       message: "Login Successful",
       token,
-      user:{
+      user: {
         id: userFound._id,
         name: userFound.name,
         email: userFound.email,
@@ -262,19 +257,18 @@ export const loginUser = async (req, res) => {
         cart: userFound.cart,
         savedProducts: userFound.savedProducts,
         lastActive: userFound.lastActive,
-      }
+      },
     });
-
   } catch (e) {
     return res.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
 };
 
-export const addToCart = async (req,res)=>{
-  try{
-    const { productId } = req.body; 
+export const addToCart = async (req, res) => {
+  try {
+    const { productId } = req.body;
     const { userId } = req.params;
 
     if (!productId) {
@@ -296,30 +290,27 @@ export const addToCart = async (req,res)=>{
       return res.status(404).json({ message: "User not found" });
     }
 
-
-    if(user.cart.includes(productId)){
+    if (user.cart.includes(productId)) {
       return res.status(400).json({ message: "Product already in cart" });
     }
 
-     user.cart.push(productId);
-     await user.save();
+    user.cart.push(productId);
+    await user.save();
 
     return res.status(200).json({
       message: "Product added to cart",
-      cart: user.cart
+      cart: user.cart,
     });
-
-  }
-  catch(e){
+  } catch (e) {
     return res.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
-}
+};
 
-export const removeFromCart = async (req,res)=>{
-  try{
-    const { productId } = req.body; 
+export const removeFromCart = async (req, res) => {
+  try {
+    const { productId } = req.body;
     const { userId } = req.params;
 
     if (!productId) {
@@ -334,7 +325,7 @@ export const removeFromCart = async (req,res)=>{
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    if(!user.cart.includes(productId)){
+    if (!user.cart.includes(productId)) {
       return res.status(400).json({ message: "Product not in cart" });
     }
     user.cart.pull(productId);
@@ -342,12 +333,11 @@ export const removeFromCart = async (req,res)=>{
 
     return res.status(200).json({
       message: "Product removed from cart",
-      cart: user.cart
+      cart: user.cart,
     });
-  }
-    catch(e){
+  } catch (e) {
     return res.status(500).json({
-      message: e.message
+      message: e.message,
     });
   }
-}
+};

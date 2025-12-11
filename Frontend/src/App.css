@@ -6,8 +6,8 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -87,7 +87,7 @@ body {
 }
 
 .nav-link.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -0.5rem;
   left: 0;
@@ -132,7 +132,7 @@ body {
   .logo {
     font-size: 1.25rem;
   }
-  
+
   .nav-link {
     font-size: 0.9rem;
     padding: 0.5rem 0.25rem;
@@ -143,12 +143,12 @@ body {
   .header-nav {
     gap: 0.5rem;
   }
-  
+
   .nav-link {
     font-size: 0.85rem;
     padding: 0.5rem 0.25rem;
   }
-  
+
   .header-content {
     padding: 0.75rem;
   }

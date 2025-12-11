@@ -1,12 +1,14 @@
-import React from 'react';
-import '../Style/ProductRow.css';
+import React from "react";
+import "../Style/ProductRow.css";
 
 export default function ProductRow({ item, onQtyChange, onRemove }) {
   return (
     <div className="product-row">
       <div className="product-info">
-        <h3 className="product-name">{item.name || 'Product Name'}</h3>
-        <p className="product-price">Price: ${item.price?.toFixed(2) || '0.00'}</p>
+        <h3 className="product-name">{item.name || "Product Name"}</h3>
+        <p className="product-price">
+          Price: ${item.price?.toFixed(2) || "0.00"}
+        </p>
       </div>
 
       <div className="product-controls">
@@ -24,10 +26,7 @@ export default function ProductRow({ item, onQtyChange, onRemove }) {
           ${((item.price || 0) * (item.qty || 1)).toFixed(2)}
         </div>
 
-        <button
-          onClick={() => onRemove(item.id)}
-          className="btn-danger"
-        >
+        <button onClick={() => onRemove(item.id)} className="btn-danger">
           Remove
         </button>
       </div>

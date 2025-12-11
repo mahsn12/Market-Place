@@ -168,7 +168,7 @@
 }
 
 .divider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -253,15 +253,15 @@
   .marketplace-login-container {
     padding: 20px 16px;
   }
-  
+
   .login-box {
     padding: 30px 25px;
   }
-  
+
   .social-login {
     grid-template-columns: 1fr;
   }
-  
+
   .form-options {
     flex-direction: column;
     gap: 12px;

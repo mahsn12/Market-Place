@@ -7,11 +7,10 @@ export default function TopNavbar({
   searchQuery,
   setSearchQuery,
   onNavigate,
-  onLogout
+  onLogout,
 }) {
   return (
     <div className="home-top-nav">
-
       {/* Brand link back to homepage */}
       <div
         className="home-brand"
@@ -28,8 +27,7 @@ export default function TopNavbar({
 
       {/* icons section - all buttons on the right */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-        
-        {isLoggedIn && ( 
+        {isLoggedIn && (
           <>
             {/* Cart Button */}
             <button
@@ -53,10 +51,7 @@ export default function TopNavbar({
 
         {!isLoggedIn && (
           <>
-            <button
-              className="nav-link"
-              onClick={() => onNavigate("login")}
-            >
+            <button className="nav-link" onClick={() => onNavigate("login")}>
               Login
             </button>
 
@@ -77,7 +72,7 @@ export default function TopNavbar({
               alt="profile"
               className="home-profile"
             />
-           
+
             {/* Single logout button */}
             <button
               className="nav-button logout-button"
@@ -88,7 +83,6 @@ export default function TopNavbar({
             </button>
           </>
         )}
-
       </div>
     </div>
   );

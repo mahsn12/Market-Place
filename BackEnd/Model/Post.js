@@ -5,30 +5,30 @@ const postSchema = mongoose.Schema(
     sellerId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
     // el marketplace fields
     title: {
       type: String,
       required: true,
-      text: true
+      text: true,
     },
 
     description: {
       type: String,
-      text: true
+      text: true,
     },
 
     price: {
       type: Number,
-      required: false
+      required: false,
     },
 
     category: {
       type: String,
       required: false,
-      index: true
+      index: true,
     },
 
     // search bs bl location
@@ -36,32 +36,32 @@ const postSchema = mongoose.Schema(
       type: {
         type: String,
         enum: ["Point"],
-        default: "Point"
+        default: "Point",
       },
       coordinates: {
         type: [Number], // [lng, lat]
-        default: undefined
-      }
+        default: undefined,
+      },
     },
 
     date: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
 
     images: [
       {
         type: String,
-        required: true
-      }
+        required: true,
+      },
     ],
 
     // stats w engagement
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
     comments: [
@@ -69,45 +69,45 @@ const postSchema = mongoose.Schema(
         userId: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "User",
-          required: true
+          required: true,
         },
         userName: {
           type: String,
-          required: true
+          required: true,
         },
         text: {
           type: String,
-          required: true
+          required: true,
         },
         date: {
           type: Date,
-          default: Date.now
-        }
-      }
+          default: Date.now,
+        },
+      },
     ],
 
     // Saved posts
     savedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
-      }
+        ref: "User",
+      },
     ],
 
-    // reporting  
+    // reporting
     reports: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         reason: String,
-        date: { type: Date, default: Date.now }
-      }
+        date: { type: Date, default: Date.now },
+      },
     ],
 
     // paid ad
     boostedUntil: {
       type: Date,
-      default: null
-    }
+      default: null,
+    },
   },
   { timestamps: true }
 );

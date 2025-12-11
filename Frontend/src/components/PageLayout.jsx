@@ -1,6 +1,6 @@
-import React from 'react';
-import Footer from './Footer';
-import '../Style/PageLayout.css';
+import React from "react";
+import Footer from "./Footer";
+import "../Style/PageLayout.css";
 
 export default function PageLayout({ title, children, showHeader = true }) {
   return (
@@ -10,9 +10,7 @@ export default function PageLayout({ title, children, showHeader = true }) {
           <h1 className="page-title">{title}</h1>
         </div>
       )}
-      <main className="page-content">
-        {children}
-      </main>
+      <main className="page-content">{children}</main>
       <Footer />
     </div>
   );

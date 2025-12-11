@@ -154,7 +154,7 @@
 }
 
 .radio-option input:checked ~ .radio-custom::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -228,7 +228,7 @@
 }
 
 .divider::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 0;
@@ -325,20 +325,20 @@
   .marketplace-register-container {
     padding: 20px 16px;
   }
-  
+
   .register-box {
     padding: 30px 25px;
   }
-  
+
   .name-fields {
     grid-template-columns: 1fr;
     gap: 0;
   }
-  
+
   .social-login {
     grid-template-columns: 1fr;
   }
-  
+
   .user-type-selector {
     flex-direction: column;
     gap: 10px;

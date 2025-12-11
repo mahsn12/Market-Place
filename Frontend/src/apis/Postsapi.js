@@ -3,14 +3,12 @@ import { api } from "./api";
 export const createPost = (data) =>
   api("/api/posts/create", { method: "POST", body: data });
 
-export const getAllPosts = () =>
-  api("/api/posts/all");
+export const getAllPosts = () => api("/api/posts/all");
 
 export const searchPosts = (query) =>
   api("/api/posts/search", { params: { query } });
 
-export const getTrendingPosts = () =>
-  api("/api/posts/trending");
+export const getTrendingPosts = () => api("/api/posts/trending");
 
 export const toggleSavePost = (data) =>
   api("/api/posts/save", { method: "PATCH", body: data });
@@ -24,8 +22,7 @@ export const boostPost = (data) =>
 export const followSeller = (data) =>
   api("/api/posts/follow", { method: "POST", body: data });
 
-export const getSellerProfile = (id) =>
-  api(`/api/posts/seller/profile/${id}`);
+export const getSellerProfile = (id) => api(`/api/posts/seller/profile/${id}`);
 
 export const toggleLikePost = (data) =>
   api("/api/posts/like", { method: "PATCH", body: data });

@@ -12,7 +12,7 @@ import {
   toggleLikePost,
   addComment,
   deleteComment,
-  deletePost
+  deletePost,
 } from "../Controller/PostController.js";
 
 const router = express.Router();

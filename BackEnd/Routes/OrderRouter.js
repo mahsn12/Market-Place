@@ -9,7 +9,7 @@ import {
   getOrdersByBuyer,
   getOrdersBySeller,
   paymentWebhook,
-  getSalesSummary
+  getSalesSummary,
 } from "../Controller/OrderController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 
