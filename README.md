@@ -11,7 +11,7 @@ npm run dev
 
 That's it! 
 
-- Frontend: http://localhost:5174
+- Frontend: http://localhost:5173
 - Backend: http://localhost:5200
 
 Happy coding! 🚀
