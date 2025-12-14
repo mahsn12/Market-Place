@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import HomePage from "./Pages/HomePage";
 import MarketplaceLogin from "./Pages/LoginPage";
 import RegisterPage from "./Pages/RegisterPage";
-import SellerDashboard from "./Pages/SellerDashboard";
-import CheckoutPage from "./Pages/CheckoutPage";
-import OrdersPage from "./Pages/OrdersPage";
+import CreatePostPage from "./Pages/CreatePostPage";
+import PostDetailsPage from "./Pages/PostDetailsPage";
 import ProfilePage from "./Pages/ProfilePage";
+import MessagesPage from "./Pages/MessagesPage";
+import OffersPage from "./Pages/OffersPage";
+import MyListingsPage from "./Pages/MyListingsPage";
 import TopNav from "./components/TopNav";
 import { ToastProvider } from "./components/ToastContext";
 import "./App.css";
@@ -15,6 +17,7 @@ function App() {
     localStorage.getItem("CurrentPage") || "home"
   );
 
+  const [selectedPost, setSelectedPost] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isLoggedIn") === "true"
   );
@@ -23,11 +26,14 @@ function App() {
     JSON.parse(localStorage.getItem("User")) || null
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [productsRefreshTrigger, setProductsRefreshTrigger] = useState(0);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
-  const handleNavigation = (page) => {
-    console.log("Navigating to:", page);
+  const handleNavigation = (page, params = null) => {
+    console.log("Navigating to:", page, params);
     setCurrentPage(page);
+    if (params?.post) {
+      setSelectedPost(params.post);
+    }
     window.scrollTo(0, 0);
     localStorage.setItem("CurrentPage", page);
   };
@@ -55,10 +61,6 @@ function App() {
     localStorage.setItem("User", JSON.stringify(updatedUser));
   };
 
-  const handleProductsRefresh = () => {
-    setProductsRefreshTrigger((prev) => prev + 1);
-  };
-
   const handleStartShopping = () => {
     if (!isLoggedIn) {
       handleNavigation("login");
@@ -67,14 +69,11 @@ function App() {
     }
   };
 
-  // Add this function to handle seller dashboard navigation
-  const handleGoToSellerDashboard = () => {
-    console.log("Going to seller dashboard...");
-    if (!isLoggedIn) {
-      alert("Please login first to access seller dashboard");
-      handleNavigation("login");
-    } else {
-      handleNavigation("seller");
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    setSearchTrigger((prev) => prev + 1);
+    if (currentPage !== "home") {
+      handleNavigation("home");
     }
   };
 
@@ -86,10 +85,9 @@ function App() {
           <TopNav
             isLoggedIn={isLoggedIn}
             user={user}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
             onNavigate={handleNavigation}
             onLogout={handleLogout}
+            onSearch={handleSearch}
           />
         )}
 
@@ -98,10 +96,9 @@ function App() {
             <HomePage
               onNavigate={handleNavigation}
               onStartShopping={handleStartShopping}
-              onGoToSellerDashboard={handleGoToSellerDashboard} // Pass the handler
               isLoggedIn={isLoggedIn}
               user={user}
-              refreshTrigger={productsRefreshTrigger}
+              searchQuery={searchQuery || ""}
             />
           )}
 
@@ -119,11 +116,20 @@ function App() {
           {/* Protected pages - only for logged in users */}
           {isLoggedIn && (
             <>
-              {currentPage === "checkout" && (
-                <CheckoutPage user={user} onNavigate={handleNavigation} />
+              {currentPage === "create-post" && (
+                <CreatePostPage
+                  user={user}
+                  isLoggedIn={isLoggedIn}
+                  onNavigate={handleNavigation}
+                />
               )}
-              {currentPage === "orders" && (
-                <OrdersPage user={user} onNavigate={handleNavigation} />
+              {currentPage === "post-details" && selectedPost && (
+                <PostDetailsPage
+                  post={selectedPost}
+                  onNavigate={handleNavigation}
+                  user={user}
+                  isLoggedIn={isLoggedIn}
+                />
               )}
               {currentPage === "profile" && (
                 <ProfilePage
@@ -132,21 +138,44 @@ function App() {
                   onUserUpdate={handleUserUpdate}
                 />
               )}
-              {currentPage === "seller" && (
-                <SellerDashboard
+              {currentPage === "messages" && (
+                <MessagesPage
                   user={user}
+                  isLoggedIn={isLoggedIn}
+                />
+              )}
+              {currentPage === "offers" && (
+                <OffersPage
+                  user={user}
+                  isLoggedIn={isLoggedIn}
                   onNavigate={handleNavigation}
-                  onProductsRefresh={handleProductsRefresh}
+                />
+              )}
+              {currentPage === "my-listings" && (
+                <MyListingsPage
+                  user={user}
+                  isLoggedIn={isLoggedIn}
+                  onNavigate={handleNavigation}
                 />
               )}
             </>
           )}
 
+          {!isLoggedIn && currentPage === "post-details" && (
+            <PostDetailsPage
+              post={selectedPost}
+              onNavigate={handleNavigation}
+              user={user}
+              isLoggedIn={isLoggedIn}
+            />
+          )}
+
           {/* If user tries to access protected page without login */}
           {!isLoggedIn &&
-            (currentPage === "checkout" ||
-              currentPage === "orders" ||
-              currentPage === "seller") && (
+            (currentPage === "create-post" ||
+              currentPage === "my-listings" ||
+              currentPage === "messages" ||
+              currentPage === "offers") && (
               <div className="login-required">
                 <h2>Login Required</h2>
                 <p>Please login to access this page</p>

@@ -1,14 +1,54 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
+import { getUnreadCount } from "../apis/Messagesapi";
 
 export default function TopNavbar({
   isLoggedIn,
   user,
-  searchQuery,
-  setSearchQuery,
   onNavigate,
   onLogout,
+  onSearch,
 }) {
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      const fetchUnreadCount = async () => {
+        try {
+          const response = await getUnreadCount();
+          setUnreadCount(response.result?.totalUnread || 0);
+        } catch (error) {
+          console.error("Failed to fetch unread count:", error);
+        }
+      };
+
+      fetchUnreadCount();
+
+      // Poll every 5 seconds
+      const interval = setInterval(fetchUnreadCount, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [isLoggedIn]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (onSearch && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    // Real-time search as user types
+    if (onSearch && e.target.value.trim()) {
+      onSearch(e.target.value.trim());
+    } else if (onSearch && !e.target.value.trim()) {
+      // Clear search when input is empty
+      onSearch("");
+    }
+  };
+
   return (
     <div className="home-top-nav">
       {/* Brand link back to homepage */}
@@ -25,26 +65,71 @@ export default function TopNavbar({
         Marketplace
       </div>
 
+      {/* Search Bar */}
+      <form onSubmit={handleSearchSubmit} className="search-form">
+        <input
+          type="text"
+          className="search-input"
+          placeholder="Search by title, description, or seller..."
+          value={searchQuery}
+          onChange={handleSearchChange}
+        />
+        <button type="submit" className="search-button">
+          🔍
+        </button>
+      </form>
+
       {/* icons section - all buttons on the right */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         {isLoggedIn && (
           <>
-            {/* Cart Button */}
+            {/* My Listings Button */}
             <button
-              className="nav-button cart-button"
-              onClick={() => onNavigate("checkout")}
-              title="View Cart"
+              className="nav-button listings-button"
+              onClick={() => onNavigate("my-listings")}
+              title="My Listings Dashboard"
             >
-              🛒 Cart
+              📊 My Listings
             </button>
 
-            {/* Orders Button */}
+            {/* Offers Button */}
             <button
-              className="nav-button orders-button"
-              onClick={() => onNavigate("orders")}
-              title="View Orders"
+              className="nav-button offers-button"
+              onClick={() => onNavigate("offers")}
+              title="View Offers"
             >
-              📦 Orders
+              💰 Offers
+            </button>
+
+            {/* Messages Button */}
+            <button
+              className="nav-button messages-button"
+              onClick={() => onNavigate("messages")}
+              title="View Messages"
+              style={{ position: "relative" }}
+            >
+              💬 Messages
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "-8px",
+                    right: "-8px",
+                    background: "#ff4757",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
             </button>
           </>
         )}

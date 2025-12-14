@@ -34,8 +34,18 @@ export const api = async (
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Request failed");
+    let errorMessage = "Request failed";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || `Error ${response.status}`;
+    } catch (e) {
+      errorMessage = `Error ${response.status}: ${response.statusText}`;
+    }
+    console.error("❌ API ERROR:", errorMessage);
+    throw new Error(errorMessage);
   }
-  return response.json();
+  
+  const data = await response.json();
+  console.log("✅ API SUCCESS →", data);
+  return data;
 };

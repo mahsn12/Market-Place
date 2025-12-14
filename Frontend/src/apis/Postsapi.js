@@ -3,10 +3,13 @@ import { api } from "./api";
 export const createPost = (data) =>
   api("/api/posts/create", { method: "POST", body: data });
 
-export const getAllPosts = () => api("/api/posts/all");
+export const updatePost = (id, data) =>
+  api(`/api/posts/update/${id}`, { method: "PATCH", body: data });
+
+export const getAllPosts = (params) => api("/api/posts/all", { params });
 
 export const searchPosts = (query) =>
-  api("/api/posts/search", { params: { query } });
+  api("/api/posts/search", { params: { q: query } });
 
 export const getTrendingPosts = () => api("/api/posts/trending");
 
@@ -22,7 +25,10 @@ export const boostPost = (data) =>
 export const followSeller = (data) =>
   api("/api/posts/follow", { method: "POST", body: data });
 
-export const getSellerProfile = (id) => api(`/api/posts/seller/profile/${id}`);
+export const getSellerProfile = (sellerId) => api(`/api/posts/seller/profile/${sellerId}`);
+
+export const getPostsBySeller = (sellerId, params) =>
+  api(`/api/posts/seller/${sellerId}`, { params });
 
 export const toggleLikePost = (data) =>
   api("/api/posts/like", { method: "PATCH", body: data });
@@ -32,6 +38,12 @@ export const addComment = (data) =>
 
 export const deleteComment = (postId, commentId) =>
   api(`/api/posts/comment/${postId}/${commentId}`, { method: "DELETE" });
+
+export const addReply = (data) =>
+  api("/api/posts/reply/add", { method: "POST", body: data });
+
+export const deleteReply = (postId, commentId, replyId) =>
+  api(`/api/posts/reply/${postId}/${commentId}/${replyId}`, { method: "DELETE" });
 
 export const deletePost = (id) =>
   api(`/api/posts/delete/${id}`, { method: "DELETE" });

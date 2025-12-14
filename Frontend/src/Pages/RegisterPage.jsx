@@ -33,6 +33,11 @@ function RegisterPage({ onNavigate }) {
       return;
     }
 
+    if (formData.password.length < 8) {
+      showError("Password must be at least 8 characters.");
+      return;
+    }
+
     try {
       const res = await registerUser({
         name: `${formData.firstName} ${formData.lastName}`, // COMBINE NAMES
@@ -129,7 +134,7 @@ function RegisterPage({ onNavigate }) {
               required
               className="form-input"
               placeholder="Create a password"
-              minLength="6"
+              minLength="8"
             />
           </div>
 

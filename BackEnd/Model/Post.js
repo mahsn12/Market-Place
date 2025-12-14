@@ -31,17 +31,16 @@ const postSchema = mongoose.Schema(
       index: true,
     },
 
-    // search bs bl location
+    condition: {
+      type: String,
+      enum: ["new", "like new", "good", "fair"],
+      default: "good",
+    },
+
+    // Location as simple string
     location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number], // [lng, lat]
-        default: undefined,
-      },
+      type: String,
+      default: "",
     },
 
     date: {
@@ -75,6 +74,10 @@ const postSchema = mongoose.Schema(
           type: String,
           required: true,
         },
+        userProfileImage: {
+          type: String,
+          default: null,
+        },
         text: {
           type: String,
           required: true,
@@ -83,6 +86,31 @@ const postSchema = mongoose.Schema(
           type: Date,
           default: Date.now,
         },
+        replies: [
+          {
+            userId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+              required: true,
+            },
+            userName: {
+              type: String,
+              required: true,
+            },
+            userProfileImage: {
+              type: String,
+              default: null,
+            },
+            text: {
+              type: String,
+              required: true,
+            },
+            date: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+        ],
       },
     ],
 
@@ -114,9 +142,6 @@ const postSchema = mongoose.Schema(
 
 // mn chatgpt bs azon bta3t search fel name w description
 postSchema.index({ title: "text", description: "text" });
-
-//mnn brdo chatgpt bta3et location
-postSchema.index({ location: "2dsphere" });
 
 const Post = mongoose.model("Post", postSchema);
 export default Post;

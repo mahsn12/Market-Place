@@ -1,19 +1,19 @@
 import { request, response } from "express";
 import Post from "../Model/Post.js";
 import User from "../Model/User.js";
+import mongoose from "mongoose";
 
 // Helper: pagination defaults
 const defaultPage = 1;
 const defaultLimit = 10;
 
-// Create Post (seller should provide title, description, price, category, images, location optional)
+// Create Post (auth-based - uses req.user from middleware)
 export const createPost = async (request, response) => {
   try {
-    const { sellerId, images, title, description, price, category, location } =
+    const { images, title, description, price, category, condition, location } =
       request.body;
 
     if (
-      !sellerId ||
       !images ||
       !Array.isArray(images) ||
       images.length === 0 ||
@@ -21,20 +21,17 @@ export const createPost = async (request, response) => {
     ) {
       return response
         .status(400)
-        .json({ message: "sellerId, title and images[] are required" });
+        .json({ message: "title and images[] are required" });
     }
 
-    const seller = await User.findById(sellerId);
-    if (!seller)
-      return response.status(404).json({ message: "Seller not found" });
-
     const post = new Post({
-      sellerId,
+      sellerId: request.user.id,
       images,
       title,
       description,
       price,
       category,
+      condition,
       location,
     });
     await post.save();
@@ -42,6 +39,42 @@ export const createPost = async (request, response) => {
     return response
       .status(201)
       .json({ message: "Post created successfully", result: post });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};
+
+// Update Post (seller only)
+export const updatePost = async (request, response) => {
+  try {
+    const { id } = request.params;
+    const { images, title, description, price, category, condition, location } =
+      request.body;
+
+    const post = await Post.findById(id);
+    if (!post) {
+      return response.status(404).json({ message: "Post not found" });
+    }
+
+    // Only seller can update their post
+    if (post.sellerId.toString() !== request.user.id) {
+      return response.status(403).json({ message: "Unauthorized" });
+    }
+
+    // Update fields
+    if (title) post.title = title;
+    if (description) post.description = description;
+    if (price !== undefined) post.price = price;
+    if (category) post.category = category;
+    if (condition) post.condition = condition;
+    if (images && Array.isArray(images)) post.images = images;
+    if (location) post.location = location;
+
+    await post.save();
+
+    return response
+      .status(200)
+      .json({ message: "Post updated successfully", result: post });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -73,7 +106,27 @@ export const getAllPosts = async (request, response) => {
     const posts = await Post.aggregate([
       { $match: filter },
       {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$sellerData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
         $addFields: {
+          sellerId: {
+            _id: "$sellerId",
+            name: "$sellerData.name",
+            profileImage: "$sellerData.profileImage",
+            verified: "$sellerData.verified",
+          },
           boostedScore: {
             $cond: [{ $gt: ["$boostedUntil", new Date()] }, 1, 0],
           },
@@ -84,6 +137,11 @@ export const getAllPosts = async (request, response) => {
       { $sort: Object.assign({ boostedScore: -1 }, sortObj) },
       { $skip: skip },
       { $limit: limit },
+      {
+        $project: {
+          sellerData: 0,
+        },
+      },
     ]);
 
     return response
@@ -94,7 +152,7 @@ export const getAllPosts = async (request, response) => {
   }
 };
 
-// Search posts (text) + optional geo radius search (requires Post.location as GeoJSON Point coords: [lng,lat])
+// Search posts (text search)
 export const searchPosts = async (request, response) => {
   try {
     const q = request.query.q || "";
@@ -102,28 +160,59 @@ export const searchPosts = async (request, response) => {
     const limit = parseInt(request.query.limit) || defaultLimit;
     const skip = (page - 1) * limit;
 
-    const { lat, lng, radius } = request.query; // radius in kilometers
+    // Build search pipeline - first lookup seller, then match
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$sellerData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ];
 
-    const textSearch = q.trim() ? { $text: { $search: q } } : {};
-
-    const pipeline = [{ $match: textSearch }];
-
-    if (lat && lng && radius) {
-      const meters = Number(radius) * 1000;
+    // Add search criteria: title (primary), description (secondary), seller name (tertiary)
+    if (q.trim()) {
+      const searchRegex = new RegExp(q.trim(), "i");
       pipeline.push({
-        $geoNear: {
-          near: {
-            type: "Point",
-            coordinates: [parseFloat(lng), parseFloat(lat)],
-          },
-          distanceField: "distance",
-          maxDistance: meters,
-          spherical: true,
+        $match: {
+          $or: [
+            { title: searchRegex },
+            { description: searchRegex },
+            { "sellerData.name": searchRegex },
+          ],
         },
       });
     }
 
-    pipeline.push({ $skip: skip }, { $limit: limit });
+    // Format seller data and pagination
+    pipeline.push(
+      {
+        $addFields: {
+          sellerId: {
+            _id: "$sellerId",
+            name: "$sellerData.name",
+            profileImage: "$sellerData.profileImage",
+            verified: "$sellerData.verified",
+          },
+        },
+      },
+      { $sort: { date: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          sellerData: 0,
+        },
+      }
+    );
 
     const posts = await Post.aggregate(pipeline);
 
@@ -131,7 +220,6 @@ export const searchPosts = async (request, response) => {
       .status(200)
       .json({ message: "Search results", page, limit, result: posts });
   } catch (e) {
-    // If user uses $geoNear but Post doesn't have proper indexes, Mongo will throw — tell the developer
     return response.status(500).json({ message: e.message });
   }
 };
@@ -141,6 +229,20 @@ export const getTrendingPosts = async (request, response) => {
   try {
     // simple score = likesCount * 2 + commentsCount * 1 - ageInHours/24
     const posts = await Post.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$sellerData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
       {
         $addFields: {
           likesCount: { $size: { $ifNull: ["$likes", []] } },
@@ -158,10 +260,21 @@ export const getTrendingPosts = async (request, response) => {
               { $divide: ["$ageHours", 24] },
             ],
           },
+          sellerId: {
+            _id: "$sellerId",
+            name: "$sellerData.name",
+            profileImage: "$sellerData.profileImage",
+            verified: "$sellerData.verified",
+          },
         },
       },
       { $sort: { trendingScore: -1 } },
       { $limit: 20 },
+      {
+        $project: {
+          sellerData: 0,
+        },
+      },
     ]);
 
     return response
@@ -329,6 +442,71 @@ export const getSellerProfile = async (request, response) => {
   }
 };
 
+// Get Posts by Seller
+export const getPostsBySeller = async (request, response) => {
+  try {
+    const { sellerId } = request.params;
+    const page = parseInt(request.query.page) || defaultPage;
+    const limit = parseInt(request.query.limit) || defaultLimit;
+    const skip = (page - 1) * limit;
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(sellerId)) {
+      return response.status(400).json({ message: "Invalid seller ID format" });
+    }
+
+    const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
+
+    const posts = await Post.aggregate([
+      { $match: { sellerId: sellerObjectId } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$sellerData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          sellerId: {
+            _id: "$sellerId",
+            name: "$sellerData.name",
+            profileImage: "$sellerData.profileImage",
+            verified: "$sellerData.verified",
+          },
+        },
+      },
+      { $sort: { date: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          sellerData: 0,
+        },
+      },
+    ]);
+
+    const total = await Post.countDocuments({ sellerId: sellerObjectId });
+
+    return response.status(200).json({
+      message: "Seller posts",
+      page,
+      limit,
+      total,
+      result: posts,
+    });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};
+
 // Existing helpers: Like/Unlike and Comments remain useful — keep previous implementations
 export const toggleLikePost = async (request, response) => {
   try {
@@ -368,7 +546,7 @@ export const toggleLikePost = async (request, response) => {
 
 export const addComment = async (request, response) => {
   try {
-    const { postId, userId, userName, text } = request.body;
+    const { postId, userId, userName, text, userProfileImage } = request.body;
 
     if (!postId || !userId || !userName || !text) {
       return response
@@ -379,7 +557,7 @@ export const addComment = async (request, response) => {
     const post = await Post.findById(postId);
     if (!post) return response.status(404).json({ message: "Post not found" });
 
-    post.comments.push({ userId, userName, text });
+    post.comments.push({ userId, userName, text, userProfileImage });
     await post.save();
 
     return response
@@ -412,13 +590,72 @@ export const deleteComment = async (request, response) => {
   }
 };
 
+export const addReply = async (request, response) => {
+  try {
+    const { postId, commentId, userId, userName, text, userProfileImage } = request.body;
+
+    if (!postId || !commentId || !userId || !userName || !text) {
+      return response
+        .status(400)
+        .json({ message: "postId, commentId, userId, userName, and text are required" });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) return response.status(404).json({ message: "Post not found" });
+
+    const comment = post.comments.id(commentId);
+    if (!comment) return response.status(404).json({ message: "Comment not found" });
+
+    comment.replies.push({ userId, userName, text, userProfileImage });
+    await post.save();
+
+    return response
+      .status(201)
+      .json({ message: "Reply added", result: post });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};
+
+export const deleteReply = async (request, response) => {
+  try {
+    const { postId, commentId, replyId } = request.params;
+
+    const post = await Post.findById(postId);
+    if (!post) return response.status(404).json({ message: "Post not found" });
+
+    const comment = post.comments.id(commentId);
+    if (!comment) return response.status(404).json({ message: "Comment not found" });
+
+    const reply = comment.replies.id(replyId);
+    if (!reply) return response.status(404).json({ message: "Reply not found" });
+
+    reply.remove();
+    await post.save();
+
+    return response
+      .status(200)
+      .json({ message: "Reply deleted", result: post });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};
+
 export const deletePost = async (request, response) => {
   try {
     const { id } = request.params;
-    const deleted = await Post.findByIdAndDelete(id);
-
-    if (!deleted)
+    
+    const post = await Post.findById(id);
+    if (!post) {
       return response.status(404).json({ message: "Post not found" });
+    }
+
+    // Only seller can delete their post
+    if (post.sellerId.toString() !== request.user.id) {
+      return response.status(403).json({ message: "Unauthorized" });
+    }
+
+    await Post.findByIdAndDelete(id);
 
     return response.status(200).json({ message: "Post deleted successfully" });
   } catch (e) {

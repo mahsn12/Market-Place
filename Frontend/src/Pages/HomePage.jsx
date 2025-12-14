@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
-import { getAllProducts } from "../apis/Productsapi";
+import { getAllPosts, searchPosts } from "../apis/Postsapi";
 import { useToast } from "../components/ToastContext";
 
 export default function HomePage({
@@ -8,68 +8,74 @@ export default function HomePage({
   onStartShopping,
   isLoggedIn,
   user,
-  refreshTrigger,
+  searchQuery: externalSearchQuery,
+  searchTrigger,
 }) {
-  const [products, setProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
   const { showSuccess } = useToast();
 
+  // Fetch posts on mount or when search is triggered
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchPosts = async () => {
       try {
-        const response = await getAllProducts();
-        const fetchedProducts = response || [];
-        setProducts(fetchedProducts);
-        setFilteredProducts(fetchedProducts);
+        setLoading(true);
+        let response;
+        
+        if (externalSearchQuery && externalSearchQuery.trim()) {
+          // Use search API when there's a search query
+          response = await searchPosts(externalSearchQuery);
+        } else {
+          // Use getAllPosts when no search
+          response = await getAllPosts({ limit: 50 });
+        }
+        
+        const fetchedPosts = response?.result || [];
+        setPosts(fetchedPosts);
+        setFilteredPosts(fetchedPosts);
       } catch (e) {
-        console.error("Failed to fetch products:", e);
-        // Fallback to empty array
-        setProducts([]);
-        setFilteredProducts([]);
+        console.error("Failed to fetch posts:", e);
+        setPosts([]);
+        setFilteredPosts([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, [refreshTrigger]);
+    fetchPosts();
+  }, [externalSearchQuery]);
 
+  // Filter by category only (search is handled by backend)
   useEffect(() => {
-    let filtered = products;
+    let filtered = posts;
 
     if (selectedCategory !== "all") {
       filtered = filtered.filter((p) => p.category === selectedCategory);
     }
 
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.seller.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+    setFilteredPosts(filtered);
+  }, [selectedCategory, posts]);
 
-    setFilteredProducts(filtered);
-  }, [searchQuery, selectedCategory, products]);
-
-  const addToCart = (product) => {
+  const handleContactSeller = (post) => {
     if (!isLoggedIn) {
       onStartShopping(); // Redirect to login if not logged in
       return;
     }
 
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const existingItem = cart.find((item) => item._id === product._id);
+    // Navigate to seller profile or show contact modal
+    onNavigate("seller-profile", { sellerId: post.sellerId });
+    showSuccess("View seller profile to contact");
+  };
 
-    if (existingItem) {
-      existingItem.qty += 1;
-    } else {
-      cart.push({ ...product, qty: 1 });
+  const handleSavePost = (post) => {
+    if (!isLoggedIn) {
+      onStartShopping(); // Redirect to login if not logged in
+      return;
     }
 
-    localStorage.setItem("cart", JSON.stringify(cart));
-    showSuccess(`${product.name} added to cart!`);
-    onNavigate("checkout");
+    showSuccess(`Saved "${post.title}"`);
   };
 
   const handleStartShoppingClick = () => {
@@ -81,15 +87,15 @@ export default function HomePage({
     }
   };
 
-  const handleGoToSellerDashboard = () => {
+  const handleCreatePost = () => {
     if (!isLoggedIn) {
       onStartShopping(); // Go to login first
     } else {
-      onNavigate("seller"); // Navigate to seller dashboard
+      onNavigate("create-post"); // Navigate to post creation
     }
   };
 
-  const categories = ["all", "electronics", "furniture", "fashion"];
+  const categories = ["all", "electronics", "furniture", "fashion", "books"];
 
   return (
     <div className="home-page">
@@ -99,11 +105,11 @@ export default function HomePage({
           <h1 className="hero-title">
             Find anything you want.
             <br />
-            <span className="gradient-text">Buy it instantly.</span>
+            <span className="gradient-text">Buy or Sell locally.</span>
           </h1>
           <p className="hero-description">
-            Discover thousands of products from trusted sellers. Fast, secure,
-            and reliable.
+            Discover thousands of listings from your community. Fast, secure,
+            and reliable peer-to-peer marketplace.
           </p>
           <div className="hero-cta">
             <div className="cta-buttons">
@@ -111,15 +117,15 @@ export default function HomePage({
                 className="btn-primary btn-lg"
                 onClick={handleStartShoppingClick}
               >
-                {isLoggedIn ? "Continue Shopping" : "Start Shopping"}
+                {isLoggedIn ? "Browse Listings" : "Start Browsing"}
               </button>
               {isLoggedIn && (
                 <button
                   className="btn-secondary btn-lg"
-                  onClick={handleGoToSellerDashboard}
+                  onClick={handleCreatePost}
                   style={{ marginLeft: "10px" }}
                 >
-                  Go to Seller Dashboard
+                  Create Listing
                 </button>
               )}
             </div>
@@ -131,32 +137,21 @@ export default function HomePage({
                   fontSize: "0.875rem",
                 }}
               >
-                Login to buy products or sell your own items
+                Login to browse listings or create your own
               </p>
             )}
           </div>
         </div>
         <div className="hero-visual">
-          <div className="floating-card card-1">📦</div>
+          <div className="floating-card card-1">🏠</div>
           <div className="floating-card card-2">🛍️</div>
           <div className="floating-card card-3">✨</div>
         </div>
       </section>
 
-      {/* Search & Filter Section - Show to everyone when logged in */}
+      {/* Category Filter Section */}
       {isLoggedIn && (
         <section className="search-section">
-          <div className="search-wrapper">
-            <input
-              type="text"
-              className="search-container"
-              placeholder="Search for products, sellers..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <span className="search-icon">🔍</span>
-          </div>
-
           <div className="categories">
             {categories.map((category) => (
               <button
@@ -175,47 +170,62 @@ export default function HomePage({
         </section>
       )}
 
-      {/* Products Grid - Show to everyone */}
+      {/* Posts Grid - Show to everyone */}
       <section className="products-section">
         <div className="products-header">
           <h2>
             {selectedCategory === "all"
-              ? "Featured Products"
+              ? "Featured Listings"
               : `${
                   selectedCategory.charAt(0).toUpperCase() +
                   selectedCategory.slice(1)
-                }`}
+                } Listings`}
           </h2>
           {!isLoggedIn && (
-            <p className="product-notice">Login to start shopping!</p>
+            <p className="product-notice">Login to browse and list items!</p>
           )}
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {loading ? (
+          <div className="empty-state">
+            <p>Loading listings...</p>
+          </div>
+        ) : filteredPosts.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon"></div>
-            <h3>No products found</h3>
+            <h3>No listings found</h3>
             <p>Try adjusting your search or category filters</p>
             {isLoggedIn && (
               <button
-                onClick={handleGoToSellerDashboard}
+                onClick={handleCreatePost}
                 className="btn-secondary"
                 style={{ marginTop: "1rem" }}
               >
-                Sell Your Products
+                Create a Listing
               </button>
             )}
           </div>
         ) : (
           <div className="products-grid">
-            {filteredProducts.map((product) => (
-              <div key={product._id} className="product-card">
+            {filteredPosts.map((post) => (
+              <div
+                key={post._id}
+                className="product-card"
+                onClick={() => {
+                  if (isLoggedIn) {
+                    onNavigate("post-details", { post });
+                  } else {
+                    onNavigate("login");
+                  }
+                }}
+                style={{ cursor: "pointer" }}
+              >
                 <div className="product-image">
                   <img
-                    src={product.images?.[0] || ""}
-                    alt={product.name}
+                    src={post.images?.[0] || ""}
+                    alt={post.title}
                     className="product-img"
-                    style={{ display: product.images?.[0] ? "block" : "none" }}
+                    style={{ display: post.images?.[0] ? "block" : "none" }}
                     onError={(e) => {
                       e.target.style.display = "none";
                       e.target.nextSibling.style.display = "flex";
@@ -223,30 +233,44 @@ export default function HomePage({
                   />
                   <span
                     className="product-emoji"
-                    style={{ display: product.images?.[0] ? "none" : "flex" }}
+                    style={{ display: post.images?.[0] ? "none" : "flex" }}
                   >
                     📦
                   </span>
                 </div>
                 <div className="product-content">
-                  <h3 className="product-name">{product.name}</h3>
+                  <h3 className="product-name">{post.title}</h3>
+                  <p className="product-description">
+                    {post.description?.substring(0, 60)}...
+                  </p>
                   <div className="product-meta">
-                    <span className="seller">
-                      {product.sellerId?.name || "Unknown Seller"}
-                    </span>
+                    <span className="category">{post.category}</span>
                     <span className="rating">
-                      ⭐ {product.views || 0} views
+                      ⭐ {post.likes?.length || 0} likes
                     </span>
                   </div>
                   <div className="product-footer">
-                    <span className="price">${product.price.toFixed(2)}</span>
-                    <button
-                      className="btn-add-to-cart"
-                      onClick={() => addToCart(product)}
-                      disabled={!isLoggedIn}
-                    >
-                      {!isLoggedIn ? "Login to Buy" : "Add"}
-                    </button>
+                    {post.price && (
+                      <span className="price">${post.price.toFixed(2)}</span>
+                    )}
+                    <div className="btn-group">
+                      {isLoggedIn && (
+                        <button
+                          className="btn-save"
+                          onClick={() => handleSavePost(post)}
+                          title="Save"
+                        >
+                          💾
+                        </button>
+                      )}
+                      <button
+                        className="btn-contact"
+                        onClick={() => handleContactSeller(post)}
+                        disabled={!isLoggedIn}
+                      >
+                        {!isLoggedIn ? "Login" : "Contact"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -262,15 +286,15 @@ export default function HomePage({
           <div className="stat-label">Active Users</div>
         </div>
         <div className="stat">
-          <div className="stat-number">50K+</div>
-          <div className="stat-label">Products</div>
+          <div className="stat-number">500K+</div>
+          <div className="stat-label">Listings</div>
         </div>
         <div className="stat">
           <div className="stat-number">98%</div>
           <div className="stat-label">Satisfaction</div>
         </div>
         <div className="stat">
-          <div className="stat-number">10K+</div>
+          <div className="stat-number">100K+</div>
           <div className="stat-label">Active Sellers</div>
         </div>
       </section>
@@ -280,12 +304,12 @@ export default function HomePage({
         <section className="seller-cta">
           <div className="seller-cta-content">
             <h2>Start Selling Today</h2>
-            <p>List your products and reach thousands of buyers</p>
+            <p>List your items and connect with buyers in your area</p>
             <button
               className="btn-primary btn-lg"
-              onClick={handleGoToSellerDashboard}
+              onClick={handleCreatePost}
             >
-              Go to Seller Dashboard
+              Create Your First Listing
             </button>
           </div>
         </section>
@@ -295,16 +319,16 @@ export default function HomePage({
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-section">
-            <h4>Buy</h4>
+            <h4>Browse</h4>
             <ul>
               <li>
-                <a href="#products">All Products</a>
+                <a href="#listings">All Listings</a>
               </li>
               <li>
                 <a href="#categories">Categories</a>
               </li>
               <li>
-                <a href="#deals">Deals</a>
+                <a href="#deals">Trending</a>
               </li>
             </ul>
           </div>
@@ -316,10 +340,10 @@ export default function HomePage({
                   href="#sell"
                   onClick={(e) => {
                     e.preventDefault();
-                    handleGoToSellerDashboard();
+                    handleCreatePost();
                   }}
                 >
-                  Start Selling
+                  Create Listing
                 </a>
               </li>
               <li>

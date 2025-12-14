@@ -10,14 +10,25 @@ const Toast = ({ message, type, onClose, duration = 4000 }) => {
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
+  const getIcon = () => {
+    switch (type) {
+      case "success":
+        return "✓";
+      case "error":
+        return "✕";
+      case "warning":
+        return "!";
+      case "info":
+        return "ℹ";
+      default:
+        return null;
+    }
+  };
+
   return (
-    <div className={`toast toast-${type}`}>
-      <div className="toast-content">
-        <span className="toast-message">{message}</span>
-        <button className="toast-close" onClick={onClose}>
-          ×
-        </button>
-      </div>
+    <div className={`ios-toast ios-toast-${type}`}>
+      <div className="ios-toast-icon">{getIcon()}</div>
+      <span className="ios-toast-message">{message}</span>
     </div>
   );
 };

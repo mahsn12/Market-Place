@@ -16,7 +16,15 @@ export const registerUser = async (request, response) => {
       return response.status(400).json({ message: "Missing required fields" });
     }
 
-    const existUser = await User.findOne({ email });
+    if (password.length < 8) {
+      return response
+        .status(400)
+        .json({ message: "Password must be at least 8 characters" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const existUser = await User.findOne({ email: normalizedEmail });
     if (existUser) {
       return response.status(400).json({ message: "Email already exists" });
     }
@@ -25,7 +33,7 @@ export const registerUser = async (request, response) => {
 
     const user = new User({
       name,
-      email,
+      email: normalizedEmail,
       password: hashedPass,
       phone,
     });
@@ -220,7 +228,15 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const userFound = await User.findOne({ email });
+    if (!process.env.JWT_secret_key) {
+      return res
+        .status(500)
+        .json({ message: "Server auth secret is not configured" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const userFound = await User.findOne({ email: normalizedEmail });
 
     if (!userFound) {
       return res.status(404).json({
