@@ -1,7 +1,7 @@
 import express from "express";
 import userRouter from "./Routes/UserRoutes.js";
 import Database from "./Config/db.js";
-import PostController from "./Routes/PostsRouter.js";
+import postRoutes  from "./Routes/PostsRouter.js";
 import MessageRouter from "./Routes/MessageRouter.js";
 import OfferRouter from "./Routes/OfferRouter.js";
 import cors from "cors";
@@ -23,7 +23,7 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/users", userRouter);
-app.use("/api/posts", PostController);
+app.use("/api/posts", postRoutes );
 app.use("/api/messages", MessageRouter);
 app.use("/api/offers", OfferRouter);
 

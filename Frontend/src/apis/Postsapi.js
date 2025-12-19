@@ -47,3 +47,9 @@ export const deleteReply = (postId, commentId, replyId) =>
 
 export const deletePost = (id) =>
   api(`/api/posts/delete/${id}`, { method: "DELETE" });
+
+
+export const searchPostsByTitlePrefix = (query, params) =>
+  api("/api/posts/search-prefix", {
+    params: { q: query, ...params },
+  });

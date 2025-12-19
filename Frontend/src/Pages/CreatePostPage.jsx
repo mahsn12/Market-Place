@@ -15,11 +15,13 @@ export default function CreatePostPage({
     title: existingPost?.title || "",
     description: existingPost?.description || "",
     price: existingPost?.price || "",
+    quantity: existingPost?.quantity ?? 1,
     category: existingPost?.category || "",
     condition: existingPost?.condition || "good",
     images: existingPost?.images || [],
     location: existingPost?.location || "",
   });
+
 
   const [imagePreviews, setImagePreviews] = useState(existingPost?.images || []);
   const [activeTab, setActiveTab] = useState("details");
@@ -104,6 +106,12 @@ export default function CreatePostPage({
       showError("Price cannot be negative");
       return false;
     }
+
+    if (formData.quantity < 1) {
+      showError("Quantity must be at least 1");
+      return false;
+    }
+
     return true;
   };
 
@@ -115,15 +123,17 @@ export default function CreatePostPage({
     try {
       setLoading(true);
 
-      const postData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        price: formData.price ? parseFloat(formData.price) : null,
-        category: formData.category,
-        condition: formData.condition,
-        images: formData.images,
-        location: formData.location || null,
-      };
+    const postData = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      price: formData.price ? parseFloat(formData.price) : null,
+      quantity: parseInt(formData.quantity, 10),
+      category: formData.category,
+      condition: formData.condition,
+      images: formData.images,
+      location: formData.location || null,
+    };
+
 
       let response;
       if (existingPost) {
@@ -325,6 +335,26 @@ export default function CreatePostPage({
                     Leave blank for free items or to accept offers
                   </p>
                 </div>
+                <div className="form-group">
+                {/* price */}
+                  <label htmlFor="quantity">
+                    Quantity <span className="required">*</span>
+                  </label>
+                  <input
+                    id="quantity"
+                    type="number"
+                    name="quantity"
+                    value={formData.quantity}
+                    onChange={handleInputChange}
+                    min="1"
+                    step="1"
+                    placeholder="1"
+                  />
+                  <p className="form-hint">
+                    Number of items available
+                  </p>
+                </div>
+
 
                 {/* Location */}
                 <div className="form-group">

@@ -284,76 +284,165 @@ export const loginUser = async (req, res) => {
 
 export const addToCart = async (req, res) => {
   try {
-    const { productId } = req.body;
-    const { userId } = req.params;
+    const { postId, quantity = 1 } = req.body;
+    const userId = req.user.id;
 
-    if (!productId) {
-      return res.status(400).json({ message: "Product ID is required" });
+    if (!postId) {
+      return res.status(400).json({ message: "Post ID is required" });
     }
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    const product = await Product.findById(productId);
+    if (quantity < 1) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
+
+    const post = await Post.findById(postId);
     const user = await User.findById(userId);
 
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
     }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (user.cart.includes(productId)) {
-      return res.status(400).json({ message: "Product already in cart" });
+    if (post.quantity < quantity) {
+      return res.status(400).json({
+        message: "Not enough stock available",
+      });
     }
 
-    user.cart.push(productId);
+    // Check if post already in cart
+    const cartItem = user.cart.find(
+      (item) => item.postId.toString() === postId
+    );
+
+    if (cartItem) {
+      cartItem.quantity += quantity;
+    } else {
+      user.cart.push({ postId, quantity });
+    }
+
+    // Decrement post stock
+    post.quantity -= quantity;
+
+    await post.save();
     await user.save();
 
     return res.status(200).json({
-      message: "Product added to cart",
+      message: "Post added to cart",
       cart: user.cart,
     });
   } catch (e) {
-    return res.status(500).json({
-      message: e.message,
-    });
+    return res.status(500).json({ message: e.message });
   }
 };
 
+
 export const removeFromCart = async (req, res) => {
   try {
-    const { productId } = req.body;
-    const { userId } = req.params;
+    const { postId, quantity = 1 } = req.body;
+    const userId = req.user.id;
 
-    if (!productId) {
-      return res.status(400).json({ message: "Product ID is required" });
+    if (!postId) {
+      return res.status(400).json({ message: "Post ID is required" });
     }
 
     if (!userId) {
       return res.status(400).json({ message: "User ID is required" });
     }
+
+    if (quantity < 1) {
+      return res.status(400).json({ message: "Quantity must be at least 1" });
+    }
+
     const user = await User.findById(userId);
+    const post = await Post.findById(postId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    if (!user.cart.includes(productId)) {
-      return res.status(400).json({ message: "Product not in cart" });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
     }
-    user.cart.pull(productId);
+
+    const cartItem = user.cart.find(
+      (item) => item.postId.toString() === postId
+    );
+
+    if (!cartItem) {
+      return res.status(400).json({ message: "Post not in cart" });
+    }
+
+    if (quantity >= cartItem.quantity) {
+      // Remove item completely
+      post.quantity += cartItem.quantity;
+      user.cart = user.cart.filter(
+        (item) => item.postId.toString() !== postId
+      );
+    } else {
+      cartItem.quantity -= quantity;
+      post.quantity += quantity;
+    }
+
+    await post.save();
     await user.save();
 
     return res.status(200).json({
-      message: "Product removed from cart",
+      message: "Post removed from cart",
       cart: user.cart,
     });
   } catch (e) {
-    return res.status(500).json({
-      message: e.message,
+    return res.status(500).json({ message: e.message });
+  }
+};
+
+
+export const getCart = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const user = await User.findById(userId)
+      .populate({
+        path: "cart.postId",
+        model: "Post",
+        select: "title images price quantity sellerId",
+      });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Remove invalid cart items (deleted posts)
+    const cleanCart = user.cart.filter((item) => item.postId);
+
+    if (cleanCart.length !== user.cart.length) {
+      user.cart = cleanCart;
+      await user.save();
+    }
+
+    return res.status(200).json({
+      message: "Cart retrieved",
+      cart: cleanCart.map((item) => ({
+        postId: item.postId._id,
+        title: item.postId.title,
+        images: item.postId.images,
+        price: item.postId.price,
+        availableQuantity: item.postId.quantity,
+        cartQuantity: item.quantity,
+        sellerId: item.postId.sellerId,
+      })),
     });
+  } catch (e) {
+    return res.status(500).json({ message: e.message });
   }
 };

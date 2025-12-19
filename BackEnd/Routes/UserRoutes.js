@@ -9,6 +9,7 @@ import {
   searchByNameOrEmail,
   addToCart,
   removeFromCart,
+  getCart
 } from "../Controller/UserController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 
@@ -34,6 +35,7 @@ router.patch("/update/:id", authMiddleware, UpdateUser);
 router.post("/delete/:id", authMiddleware, DeleteUser);
 
 // CART
+router.get("/cart", authMiddleware, getCart);
 router.patch("/cart/add", authMiddleware, addToCart);
 router.patch("/cart/remove", authMiddleware, removeFromCart);
 

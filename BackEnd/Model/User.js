@@ -50,12 +50,21 @@ const userSchema = new mongoose.Schema(
       default: 0,
     },
 
-    cart: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
+cart: [
+  {
+    postId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Post",
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+  },
+],
+
     ratingCount: {
       type: Number,
       default: 0,

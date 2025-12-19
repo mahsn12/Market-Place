@@ -10,8 +10,16 @@ const defaultLimit = 10;
 // Create Post (auth-based - uses req.user from middleware)
 export const createPost = async (request, response) => {
   try {
-    const { images, title, description, price, category, condition, location } =
-      request.body;
+    const {
+      images,
+      title,
+      description,
+      price,
+      quantity,
+      category,
+      condition,
+      location,
+    } = request.body;
 
     if (
       !images ||
@@ -30,6 +38,7 @@ export const createPost = async (request, response) => {
       title,
       description,
       price,
+      quantity: quantity ?? 1,
       category,
       condition,
       location,
@@ -48,8 +57,16 @@ export const createPost = async (request, response) => {
 export const updatePost = async (request, response) => {
   try {
     const { id } = request.params;
-    const { images, title, description, price, category, condition, location } =
-      request.body;
+    const {
+      images,
+      title,
+      description,
+      price,
+      quantity,
+      category,
+      condition,
+      location,
+    } = request.body;
 
     const post = await Post.findById(id);
     if (!post) {
@@ -69,6 +86,15 @@ export const updatePost = async (request, response) => {
     if (condition) post.condition = condition;
     if (images && Array.isArray(images)) post.images = images;
     if (location) post.location = location;
+    
+    if (quantity !== undefined) {
+      if (quantity < 0) {
+        return response
+          .status(400)
+          .json({ message: "Quantity cannot be negative" });
+      }
+      post.quantity = quantity;
+    }
 
     await post.save();
 
@@ -88,7 +114,7 @@ export const getAllPosts = async (request, response) => {
     const skip = (page - 1) * limit;
 
     const { category, minPrice, maxPrice, sellerId, sort } = request.query;
-    const filter = {};
+    const filter = { quantity: { $gt: 0 } };
     if (category) filter.category = category;
     if (sellerId) filter.sellerId = sellerId;
     if (minPrice)
@@ -163,6 +189,9 @@ export const searchPosts = async (request, response) => {
     // Build search pipeline - first lookup seller, then match
     const pipeline = [
       {
+        $match: { quantity: { $gt: 0 } }
+      },
+      {
         $lookup: {
           from: "users",
           localField: "sellerId",
@@ -230,6 +259,9 @@ export const getTrendingPosts = async (request, response) => {
     // simple score = likesCount * 2 + commentsCount * 1 - ageInHours/24
     const posts = await Post.aggregate([
       {
+        $match: { quantity: { $gt: 0 } }
+      },
+      {
         $lookup: {
           from: "users",
           localField: "sellerId",
@@ -288,11 +320,12 @@ export const getTrendingPosts = async (request, response) => {
 // Save / Bookmark a post (adds userId to post.savedBy array — Post model must have savedBy: [ObjectId])
 export const toggleSavePost = async (request, response) => {
   try {
-    const { postId, userId } = request.body;
-    if (!postId || !userId)
-      return response
-        .status(400)
-        .json({ message: "postId and userId required" });
+    const { postId } = request.body;
+    const userId = request.user.id;
+    
+    if (!postId) {
+      return response.status(400).json({ message: "postId is required" });
+    }
 
     const post = await Post.findById(postId);
     if (!post) return response.status(404).json({ message: "Post not found" });
@@ -317,11 +350,14 @@ export const toggleSavePost = async (request, response) => {
 // Report Post (adds report to post.reports array)
 export const reportPost = async (request, response) => {
   try {
-    const { postId, userId, reason } = request.body;
-    if (!postId || !userId || !reason)
+    const { postId, reason } = request.body;
+    const userId = request.user.id;
+    
+    if (!postId || !reason) {
       return response
         .status(400)
-        .json({ message: "postId, userId and reason are required" });
+        .json({ message: "postId and reason are required" });
+    }
 
     const post = await Post.findById(postId);
     if (!post) return response.status(404).json({ message: "Post not found" });
@@ -342,18 +378,23 @@ export const reportPost = async (request, response) => {
 // Boost Post (seller pays to boost; here we just set boostedUntil date)
 export const boostPost = async (request, response) => {
   try {
-    const { postId, sellerId, days } = request.body;
-    if (!postId || !sellerId || !days)
+    const { postId, days } = request.body;
+    const sellerId = request.user.id;
+    
+    if (!postId || !days) {
       return response
         .status(400)
-        .json({ message: "postId, sellerId and days required" });
+        .json({ message: "postId and days required" });
+    }
 
     const post = await Post.findById(postId);
     if (!post) return response.status(404).json({ message: "Post not found" });
-    if (post.sellerId.toString() !== sellerId.toString())
+    
+    if (post.sellerId.toString() !== sellerId.toString()) {
       return response
         .status(403)
         .json({ message: "Only seller can boost their post" });
+    }
 
     const now = new Date();
     const currentBoost =
@@ -380,27 +421,33 @@ export const boostPost = async (request, response) => {
 // Follow a seller (simple endpoint - this requires a `following` array on User model or a separate Follows collection)
 export const followSeller = async (request, response) => {
   try {
-    const { userId, sellerId } = request.body;
-    if (!userId || !sellerId)
+    const { sellerId } = request.body;
+    const userId = request.user.id;
+    
+    if (!sellerId) {
       return response
         .status(400)
-        .json({ message: "userId and sellerId required" });
+        .json({ message: "sellerId required" });
+    }
 
     const user = await User.findById(userId);
     const seller = await User.findById(sellerId);
-    if (!user || !seller)
+    if (!user || !seller) {
       return response.status(404).json({ message: "User or seller not found" });
+    }
 
     // For simplicity, we store following in `user.following` — make sure User model has it.
     user.following = user.following || [];
     const already = user.following.some(
       (id) => id.toString() === sellerId.toString()
     );
-    if (already)
+    if (already) {
       user.following = user.following.filter(
         (id) => id.toString() !== sellerId.toString()
       );
-    else user.following.push(sellerId);
+    } else {
+      user.following.push(sellerId);
+    }
 
     await user.save();
 
@@ -458,7 +505,12 @@ export const getPostsBySeller = async (request, response) => {
     const sellerObjectId = new mongoose.Types.ObjectId(sellerId);
 
     const posts = await Post.aggregate([
-      { $match: { sellerId: sellerObjectId } },
+      { 
+        $match: { 
+          sellerId: sellerObjectId,
+          quantity: { $gt: 0 }  // Added: hide sold-out posts
+        } 
+      },
       {
         $lookup: {
           from: "users",
@@ -493,7 +545,10 @@ export const getPostsBySeller = async (request, response) => {
       },
     ]);
 
-    const total = await Post.countDocuments({ sellerId: sellerObjectId });
+    const total = await Post.countDocuments({ 
+      sellerId: sellerObjectId,
+      quantity: { $gt: 0 }  // Updated: count only available posts
+    });
 
     return response.status(200).json({
       message: "Seller posts",
@@ -510,12 +565,13 @@ export const getPostsBySeller = async (request, response) => {
 // Existing helpers: Like/Unlike and Comments remain useful — keep previous implementations
 export const toggleLikePost = async (request, response) => {
   try {
-    const { postId, userId } = request.body;
+    const { postId } = request.body;
+    const userId = request.user.id;
 
-    if (!postId || !userId) {
+    if (!postId) {
       return response
         .status(400)
-        .json({ message: "postId and userId are required" });
+        .json({ message: "postId is required" });
     }
 
     const post = await Post.findById(postId);
@@ -546,12 +602,13 @@ export const toggleLikePost = async (request, response) => {
 
 export const addComment = async (request, response) => {
   try {
-    const { postId, userId, userName, text, userProfileImage } = request.body;
+    const { postId, userName, text, userProfileImage } = request.body;
+    const userId = request.user.id;
 
-    if (!postId || !userId || !userName || !text) {
+    if (!postId || !userName || !text) {
       return response
         .status(400)
-        .json({ message: "postId, userId, userName, and text are required" });
+        .json({ message: "postId, userName, and text are required" });
     }
 
     const post = await Post.findById(postId);
@@ -592,12 +649,13 @@ export const deleteComment = async (request, response) => {
 
 export const addReply = async (request, response) => {
   try {
-    const { postId, commentId, userId, userName, text, userProfileImage } = request.body;
+    const { postId, commentId, userName, text, userProfileImage } = request.body;
+    const userId = request.user.id;
 
-    if (!postId || !commentId || !userId || !userName || !text) {
+    if (!postId || !commentId || !userName || !text) {
       return response
         .status(400)
-        .json({ message: "postId, commentId, userId, userName, and text are required" });
+        .json({ message: "postId, commentId, userName, and text are required" });
     }
 
     const post = await Post.findById(postId);
@@ -655,6 +713,12 @@ export const deletePost = async (request, response) => {
       return response.status(403).json({ message: "Unauthorized" });
     }
 
+    // Clean up carts before deleting post
+    await User.updateMany(
+      { "cart.postId": id },
+      { $pull: { cart: { postId: id } } }
+    );
+
     await Post.findByIdAndDelete(id);
 
     return response.status(200).json({ message: "Post deleted successfully" });
@@ -663,17 +727,71 @@ export const deletePost = async (request, response) => {
   }
 };
 
-/*
-- Add fields to Post model: title, description, price(Number), category(String), location{type: 'Point', coordinates:[lng,lat]}, boostedUntil(Date), savedBy:[ObjectId], reports:[{userId,reason,date}]
-- Add text index on fields you want searchable: title, description.
-- Add 2dsphere index on Post.location for geo queries.
-- Add `following` array to User model to support followSeller.
-- Add billing/microtransaction flow to accept payments for boostPost.
-- Add a Moderation collection to queue reports for human review.
-- Saved searches & alerts (notify user when new post matches filters)
-- Chat between buyer & seller with message history and read receipts
-- In-app offers: allow buyers to send an offer price — store offers on Post or separate Offers collection
-- Auto-moderation: flag posts with banned words or too many reports
-- Seller verification badges and ratings
-- Recommendation engine: show related posts using simple collaborative filtering or content similarity
-*/
+// Search posts by title prefix (first letter or more), sorted by time
+export const searchPostsByTitlePrefixController  = async (request, response) => {
+  try {
+    const q = (request.query.q || "").trim();
+    const page = parseInt(request.query.page) || defaultPage;
+    const limit = parseInt(request.query.limit) || defaultLimit;
+    const skip = (page - 1) * limit;
+
+    if (!q) {
+      return response.status(400).json({ message: "Search query is required" });
+    }
+
+    // ^q  → starts with
+    const titleRegex = new RegExp(`^${q}`, "i");
+
+    const posts = await Post.aggregate([
+      {
+        $match: {
+          title: titleRegex,
+          quantity: { $gt: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "sellerId",
+          foreignField: "_id",
+          as: "sellerData",
+        },
+      },
+      {
+        $unwind: {
+          path: "$sellerData",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          sellerId: {
+            _id: "$sellerId",
+            name: "$sellerData.name",
+            profileImage: "$sellerData.profileImage",
+            verified: "$sellerData.verified",
+          },
+          likesCount: { $size: { $ifNull: ["$likes", []] } },
+          commentsCount: { $size: { $ifNull: ["$comments", []] } },
+        },
+      },
+      { $sort: { date: -1 } }, // newest first
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          sellerData: 0,
+        },
+      },
+    ]);
+
+    return response.status(200).json({
+      message: "Posts found",
+      page,
+      limit,
+      result: posts,
+    });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};

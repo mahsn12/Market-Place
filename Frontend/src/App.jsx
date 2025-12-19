@@ -11,6 +11,8 @@ import MyListingsPage from "./Pages/MyListingsPage";
 import TopNav from "./components/TopNav";
 import { ToastProvider } from "./components/ToastContext";
 import "./App.css";
+import CartPage from "./Pages/CartPage"; 
+import SearchResultsPage from "./Pages/SearchResultsPage";
 
 function App() {
   const [currentPage, setCurrentPage] = useState(
@@ -26,7 +28,6 @@ function App() {
     JSON.parse(localStorage.getItem("User")) || null
   );
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const handleNavigation = (page, params = null) => {
     console.log("Navigating to:", page, params);
@@ -69,13 +70,13 @@ function App() {
     }
   };
 
-  const handleSearch = (query) => {
-    setSearchQuery(query);
-    setSearchTrigger((prev) => prev + 1);
-    if (currentPage !== "home") {
-      handleNavigation("home");
-    }
-  };
+const handleSearch = (query) => {
+  if (!query.trim()) return;
+
+  setSearchQuery(query);
+  handleNavigation("search");
+};
+
 
   return (
     <ToastProvider>
@@ -102,6 +103,13 @@ function App() {
             />
           )}
 
+          {currentPage === "search" && (
+          <SearchResultsPage
+            query={searchQuery}
+            onNavigate={handleNavigation}
+          />
+        )}
+
           {currentPage === "login" && (
             <MarketplaceLogin
               onNavigate={handleNavigation}
@@ -113,7 +121,7 @@ function App() {
             <RegisterPage onNavigate={handleNavigation} />
           )}
 
-          {/* Protected pages - only for logged in users */}
+            {/* Protected pages - only for logged in users */}
           {isLoggedIn && (
             <>
               {currentPage === "create-post" && (
@@ -123,6 +131,7 @@ function App() {
                   onNavigate={handleNavigation}
                 />
               )}
+
               {currentPage === "post-details" && selectedPost && (
                 <PostDetailsPage
                   post={selectedPost}
@@ -131,6 +140,7 @@ function App() {
                   isLoggedIn={isLoggedIn}
                 />
               )}
+
               {currentPage === "profile" && (
                 <ProfilePage
                   user={user}
@@ -138,12 +148,14 @@ function App() {
                   onUserUpdate={handleUserUpdate}
                 />
               )}
+
               {currentPage === "messages" && (
                 <MessagesPage
                   user={user}
                   isLoggedIn={isLoggedIn}
                 />
               )}
+
               {currentPage === "offers" && (
                 <OffersPage
                   user={user}
@@ -151,6 +163,7 @@ function App() {
                   onNavigate={handleNavigation}
                 />
               )}
+
               {currentPage === "my-listings" && (
                 <MyListingsPage
                   user={user}
@@ -158,8 +171,17 @@ function App() {
                   onNavigate={handleNavigation}
                 />
               )}
+
+              {/* ✅ CART PAGE GOES HERE */}
+              {currentPage === "cart" && (
+                <CartPage
+                  onNavigate={handleNavigation}
+                  isLoggedIn={isLoggedIn}
+                />
+              )}
             </>
           )}
+
 
           {!isLoggedIn && currentPage === "post-details" && (
             <PostDetailsPage

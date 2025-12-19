@@ -38,16 +38,10 @@ export default function TopNavbar({
     }
   };
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    // Real-time search as user types
-    if (onSearch && e.target.value.trim()) {
-      onSearch(e.target.value.trim());
-    } else if (onSearch && !e.target.value.trim()) {
-      // Clear search when input is empty
-      onSearch("");
-    }
-  };
+const handleSearchChange = (e) => {
+  setSearchQuery(e.target.value);
+};
+
 
   return (
     <div className="home-top-nav">
@@ -100,7 +94,14 @@ export default function TopNavbar({
             >
               💰 Offers
             </button>
-
+                {/* Cart Button */}
+          <button
+            className="nav-button cart-button"
+            onClick={() => onNavigate("cart")}
+            title="View Cart"
+          >
+            🛒 Cart
+          </button>
             {/* Messages Button */}
             <button
               className="nav-button messages-button"

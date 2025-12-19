@@ -26,3 +26,7 @@ export const addToCart = (data) =>
 
 export const removeFromCart = (data) =>
   api("/api/users/cart/remove", { method: "PATCH", body: data });
+
+// CART
+export const getCart = () =>
+  api("/api/users/cart");

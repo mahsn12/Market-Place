@@ -17,43 +17,62 @@ import {
   addReply,
   deleteReply,
   deletePost,
+  searchPostsByTitlePrefixController ,
 } from "../Controller/PostController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 
 const router = express.Router();
 
-router.post("/create", authMiddleware, createPost);
+/* =========================
+   POSTS CRUD
+========================= */
 
+router.post("/create", authMiddleware, createPost);
 router.patch("/update/:id", authMiddleware, updatePost);
+router.delete("/delete/:id", authMiddleware, deletePost);
+
+/* =========================
+   POSTS FETCHING
+========================= */
 
 router.get("/all", getAllPosts);
-
 router.get("/search", searchPosts);
-
 router.get("/trending", getTrendingPosts);
 
-router.patch("/save", toggleSavePost);
+/* =========================
+   POST INTERACTIONS (AUTH)
+========================= */
 
-router.post("/report", reportPost);
+router.patch("/save", authMiddleware, toggleSavePost);
+router.patch("/like", authMiddleware, toggleLikePost);
+router.post("/report", authMiddleware, reportPost);
+router.patch("/boost", authMiddleware, boostPost);
 
-router.patch("/boost", boostPost);
+/* =========================
+   COMMENTS & REPLIES (AUTH)
+========================= */
 
-router.post("/follow", followSeller);
+router.post("/comment/add", authMiddleware, addComment);
+router.delete(
+  "/comment/:postId/:commentId",
+  authMiddleware,
+  deleteComment
+);
 
+router.post("/reply/add", authMiddleware, addReply);
+router.delete(
+  "/reply/:postId/:commentId/:replyId",
+  authMiddleware,
+  deleteReply
+);
+
+/* =========================
+   SELLER / SOCIAL
+========================= */
+
+router.post("/follow", authMiddleware, followSeller);
 router.get("/seller/profile/:sellerId", getSellerProfile);
-
 router.get("/seller/:sellerId", getPostsBySeller);
-
-router.patch("/like", toggleLikePost);
-
-router.post("/comment/add", addComment);
-
-router.delete("/comment/:postId/:commentId", deleteComment);
-
-router.post("/reply/add", addReply);
-
-router.delete("/reply/:postId/:commentId/:replyId", deleteReply);
-
-router.delete("/delete/:id", authMiddleware, deletePost);
+router.get("/search-prefix", searchPostsByTitlePrefixController );
 
 export default router;

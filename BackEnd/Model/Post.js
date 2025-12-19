@@ -25,11 +25,18 @@ const postSchema = mongoose.Schema(
       required: false,
     },
 
+
     category: {
       type: String,
       required: false,
       index: true,
     },
+    
+    quantity: {
+    type: Number,
+    default: 1,
+    min: 1,
+   },
 
     condition: {
       type: String,

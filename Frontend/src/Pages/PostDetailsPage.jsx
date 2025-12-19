@@ -10,7 +10,7 @@ import {
   getSellerProfile,
 } from "../apis/Postsapi";
 import { startConversation } from "../apis/Messagesapi";
-
+import { addToCart } from "../apis/Userapi";
 export default function PostDetailsPage({
   postId,
   post: initialPost,
@@ -32,6 +32,7 @@ export default function PostDetailsPage({
   const [autoPlayTimer, setAutoPlayTimer] = useState(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [cartQty, setCartQty] = useState(1);
 
   const CAROUSEL_INTERVAL = 10000; // 10 seconds
 
@@ -92,6 +93,52 @@ export default function PostDetailsPage({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, post?.images]);
+
+
+      const handleAddToCart = async () => {
+      if (!isLoggedIn) {
+        onNavigate("login");
+        return;
+      }
+
+      if (isOwner) {
+        showError("You cannot add your own item to cart");
+        return;
+      }
+
+      if (cartQty < 1) {
+        showError("Quantity must be at least 1");
+        return;
+      }
+
+      if (cartQty > post.quantity) {
+        showError("Not enough stock available");
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        const response = await addToCart({
+          postId: post._id,
+          quantity: cartQty,
+        });
+
+        // optimistic UI update (stock decreases)
+        setPost((prev) => ({
+          ...prev,
+          quantity: prev.quantity - cartQty,
+        }));
+
+        showSuccess("Post added to cart");
+      } catch (error) {
+        showError(error.message || "Failed to add to cart");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+
 
   const fetchSellerProfile = async () => {
     try {
@@ -578,6 +625,44 @@ export default function PostDetailsPage({
           )}
 
           {/* Actions */}
+          {!isOwner && (
+          <div className="cart-section">
+            {post.quantity > 0 ? (
+              <>
+                <div className="cart-qty">
+                  <label>Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={post.quantity}
+                    value={cartQty}
+                    onChange={(e) =>
+                      setCartQty(
+                        Math.max(1, Math.min(post.quantity, Number(e.target.value)))
+                      )
+                    }
+                  />
+                  <span className="stock-left">
+                    {post.quantity} in stock
+                  </span>
+                </div>
+
+                <button
+                  className="action-btn add-to-cart-btn"
+                  onClick={handleAddToCart}
+                  disabled={loading}
+                >
+                  🛒 Add to Cart
+                </button>
+              </>
+            ) : (
+              <div className="out-of-stock">
+                🚫 Out of Stock
+              </div>
+            )}
+          </div>
+        )}
+
           <div className="actions-section">
             <button
               className={`action-btn like-btn ${isLiked ? "liked" : ""}`}
