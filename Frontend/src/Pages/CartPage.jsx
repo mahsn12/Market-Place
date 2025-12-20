@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import "../Style/HomePage.css"; // ✅ reuse existing styles
-import { getCart } from "../apis/Userapi";
+import "../Style/HomePage.css";
+import { getCart, addToCart, removeFromCart } from "../apis/Userapi";
 import { useToast } from "../components/ToastContext";
 
 export default function CartPage({ onNavigate, isLoggedIn }) {
-  const { showError, showSuccess } = useToast();
+  const { showError } = useToast();
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +15,7 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
       try {
         const response = await getCart();
         setCart(response.cart || []);
-      } catch (error) {
+      } catch {
         showError("Failed to load cart");
       } finally {
         setLoading(false);
@@ -25,20 +25,46 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
     fetchCart();
   }, [isLoggedIn]);
 
+  const handleIncrease = async (item) => {
+    if (item.cartQuantity >= item.availableQuantity) return;
+
+    try {
+      await addToCart({ postId: item.postId, quantity: 1 });
+
+      setCart((prev) =>
+        prev.map((i) =>
+          i.postId === item.postId
+            ? { ...i, cartQuantity: i.cartQuantity + 1 }
+            : i
+        )
+      );
+    } catch {
+      showError("Failed to increase quantity");
+    }
+  };
+
+  const handleDecrease = async (item) => {
+    try {
+      await removeFromCart({ postId: item.postId, quantity: 1 });
+
+      setCart((prev) =>
+        prev
+          .map((i) =>
+            i.postId === item.postId
+              ? { ...i, cartQuantity: i.cartQuantity - 1 }
+              : i
+          )
+          .filter((i) => i.cartQuantity > 0)
+      );
+    } catch {
+      showError("Failed to decrease quantity");
+    }
+  };
+
   const totalPrice = cart.reduce(
-    (sum, item) => sum + (item.price || 0) * item.cartQuantity,
+    (sum, item) => sum + item.price * item.cartQuantity,
     0
   );
-
-  const handleConvertToOrder = () => {
-    if (cart.length === 0) {
-      showError("Your cart is empty");
-      return;
-    }
-
-    // 🔥 later this will hit backend order creation
-    showSuccess("Cart converted to order (placeholder)");
-  };
 
   if (loading) {
     return (
@@ -57,7 +83,6 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
         <div className="empty-state">
           <div className="empty-icon">🛒</div>
           <h3>Your cart is empty</h3>
-          <p>Add some products to continue shopping</p>
           <button
             className="btn-primary btn-lg"
             onClick={() => onNavigate("home")}
@@ -71,18 +96,24 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
 
   return (
     <div className="products-section">
-      {/* Header */}
       <div className="products-header">
         <h2>🛒 Your Cart</h2>
-        <span className="product-count">
-          {cart.length} item{cart.length > 1 ? "s" : ""}
-        </span>
+        <span className="product-count">{cart.length} items</span>
       </div>
 
-      {/* Cart Grid */}
       <div className="products-grid">
         {cart.map((item) => (
-          <div key={item.postId} className="product-card">
+          <div
+            key={item.postId}
+            className="product-card"
+            style={{ cursor: "pointer" }}
+            onClick={() =>
+              onNavigate("post-details", {
+                       post: item.post || item,
+                   })
+
+            }
+          >
             <div className="product-image">
               {item.images?.[0] ? (
                 <img
@@ -99,10 +130,41 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
               <h3 className="product-name">{item.title}</h3>
 
               <div className="product-meta">
-                <span className="seller">Qty: {item.cartQuantity}</span>
-                <span className="rating">
-                  In stock: {item.availableQuantity}
-                </span>
+                <span>In stock: {item.availableQuantity}</span>
+              </div>
+
+              {/* Quantity controls */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  alignItems: "center",
+                  marginTop: "10px",
+                }}
+              >
+                <button
+                  className="btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDecrease(item);
+                  }}
+                >
+                  −
+                </button>
+
+                <span>{item.cartQuantity}</span>
+
+                {item.cartQuantity < item.availableQuantity && (
+                  <button
+                    className="btn-secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleIncrease(item);
+                    }}
+                  >
+                    +
+                  </button>
+                )}
               </div>
 
               <div className="product-footer">
@@ -115,22 +177,11 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
         ))}
       </div>
 
-      {/* Cart Summary */}
-      <div
-        className="seller-cta"
-        style={{ marginTop: "3rem", textAlign: "center" }}
-      >
-        <div className="seller-cta-content">
-          <h2>Total: ${totalPrice.toFixed(2)}</h2>
-          <p>Ready to place your order?</p>
-
-          <button
-            className="btn-primary btn-lg"
-            onClick={handleConvertToOrder}
-          >
-            Convert Cart to Order
-          </button>
-        </div>
+      <div className="seller-cta" style={{ marginTop: "3rem" }}>
+        <h2>Total: ${totalPrice.toFixed(2)}</h2>
+        <button className="btn-primary btn-lg">
+          Convert Cart to Order
+        </button>
       </div>
     </div>
   );

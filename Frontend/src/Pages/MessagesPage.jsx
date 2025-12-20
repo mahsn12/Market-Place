@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../Style/MessagesPage.css";
 import { useToast } from "../components/ToastContext";
 import {
@@ -22,36 +22,51 @@ export default function MessagesPage({ user, isLoggedIn }) {
   const [unreadCount, setUnreadCount] = useState(0);
   const { showSuccess, showError } = useToast();
 
+  // Use refs to track current values without re-running effects
+  const selectedConversationRef = useRef(selectedConversation);
+  const messagesRef = useRef(messages);
+
+  // Update refs when state changes
   useEffect(() => {
-    if (isLoggedIn) {
+    selectedConversationRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Poll conversations (independent of selected conversation)
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    fetchConversations();
+    fetchUnreadCount();
+
+    const conversationInterval = setInterval(() => {
       fetchConversations();
       fetchUnreadCount();
+    }, 15000);
 
-      // Poll for new messages every 10 seconds - only when conversation is selected
-      const messageInterval = selectedConversation 
-        ? setInterval(() => {
-            fetchMessages(selectedConversation._id);
-          }, 10000)
-        : null;
-
-      // Poll conversations every 15 seconds for new conversations/unread counts
-      const conversationInterval = setInterval(() => {
-        fetchConversations();
-      }, 15000);
-
-      return () => {
-        if (messageInterval) clearInterval(messageInterval);
-        clearInterval(conversationInterval);
-      };
-    }
+    return () => clearInterval(conversationInterval);
   }, [isLoggedIn]);
 
-  // Fetch messages when conversation changes
+  // Poll messages for the current selected conversation
   useEffect(() => {
-    if (selectedConversation) {
+    if (!isLoggedIn || !selectedConversation) return;
+
+    // Clear messages when conversation changes
+    setMessages([]);
+    
+    // Initial fetch
+    fetchMessages(selectedConversation._id);
+
+    // Set up polling for this specific conversation
+    const messageInterval = setInterval(() => {
       fetchMessages(selectedConversation._id);
-    }
-  }, [selectedConversation?._id]);
+    }, 10000);
+
+    return () => clearInterval(messageInterval);
+  }, [isLoggedIn, selectedConversation?._id]);
 
   const fetchConversations = async () => {
     try {
@@ -96,25 +111,26 @@ export default function MessagesPage({ user, isLoggedIn }) {
 
   const handleSelectConversation = async (conversation) => {
     setSelectedConversation(conversation);
-    await fetchMessages(conversation._id);
+    // Messages will be fetched by the useEffect above
     window.scrollTo(0, 0); // Scroll to top
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!messageInput.trim() || !selectedConversation) return;
+    if (!messageInput.trim() || !selectedConversationRef.current) return;
 
     try {
       const messageText = messageInput.trim();
       setMessageInput(""); // Clear input immediately for better UX
       
       const response = await sendMessage(
-        selectedConversation.otherUser._id,
+        selectedConversationRef.current.otherUser._id,
         messageText,
-        selectedConversation._id
+        selectedConversationRef.current._id
       );
 
-      setMessages([...messages, response.result]);
+      // Use functional update to avoid stale state
+      setMessages(prevMessages => [...prevMessages, response.result]);
       
       // Scroll to bottom after new message
       setTimeout(() => {
@@ -125,14 +141,15 @@ export default function MessagesPage({ user, isLoggedIn }) {
       }, 0);
     } catch (error) {
       showError(error.message || "Failed to send message");
-      setMessageInput(messageInput); // Restore message on error
+      setMessageInput(messageText || messageInput); // Restore message on error
     }
   };
 
   const handleDeleteMessage = async (messageId) => {
     try {
       await deleteMessage(messageId);
-      setMessages(messages.filter((m) => m._id !== messageId));
+      // Use functional update to avoid stale state
+      setMessages(prevMessages => prevMessages.filter((m) => m._id !== messageId));
       showSuccess("Message deleted");
     } catch (error) {
       showError(error.message || "Failed to delete message");
@@ -150,6 +167,7 @@ export default function MessagesPage({ user, isLoggedIn }) {
         conversations.filter((c) => c._id !== selectedConversation._id)
       );
       setSelectedConversation(null);
+      setMessages([]);
     } catch (error) {
       showError(error.message || "Failed to block user");
     }
@@ -260,7 +278,7 @@ export default function MessagesPage({ user, isLoggedIn }) {
                   </div>
                 </div>
 
-                {selectedConversation.blockedBy && (
+            {selectedConversation.blockedBy !== user._id && (
                   <div className="blocked-warning">
                     ⚠️ This conversation is blocked
                   </div>

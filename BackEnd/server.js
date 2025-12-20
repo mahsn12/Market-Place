@@ -5,6 +5,9 @@ import postRoutes  from "./Routes/PostsRouter.js";
 import MessageRouter from "./Routes/MessageRouter.js";
 import OfferRouter from "./Routes/OfferRouter.js";
 import cors from "cors";
+import aiRoutes from "./Routes/ai.routes.js";
+
+
 
 const app = express();
 // ✅ CORS middleware — allow configured origins or fall back to any origin for dev use
@@ -26,6 +29,7 @@ app.use("/api/users", userRouter);
 app.use("/api/posts", postRoutes );
 app.use("/api/messages", MessageRouter);
 app.use("/api/offers", OfferRouter);
+app.use("/api/ai", aiRoutes);
 
 try {
   await Database();

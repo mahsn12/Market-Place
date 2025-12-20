@@ -291,34 +291,18 @@ export const addToCart = async (req, res) => {
       return res.status(400).json({ message: "Post ID is required" });
     }
 
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required" });
-    }
-
     if (quantity < 1) {
       return res.status(400).json({ message: "Quantity must be at least 1" });
     }
 
-    const post = await Post.findById(postId);
     const user = await User.findById(userId);
-
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (post.quantity < quantity) {
-      return res.status(400).json({
-        message: "Not enough stock available",
-      });
-    }
-
-    // Check if post already in cart
     const cartItem = user.cart.find(
-      (item) => item.postId.toString() === postId
+      (item) => item.postId.toString() === postId.toString()
     );
 
     if (cartItem) {
@@ -327,10 +311,6 @@ export const addToCart = async (req, res) => {
       user.cart.push({ postId, quantity });
     }
 
-    // Decrement post stock
-    post.quantity -= quantity;
-
-    await post.save();
     await user.save();
 
     return res.status(200).json({
@@ -343,54 +323,27 @@ export const addToCart = async (req, res) => {
 };
 
 
+
+
 export const removeFromCart = async (req, res) => {
   try {
-    const { postId, quantity = 1 } = req.body;
+    const { postId } = req.body;
     const userId = req.user.id;
 
     if (!postId) {
       return res.status(400).json({ message: "Post ID is required" });
     }
 
-    if (!userId) {
-      return res.status(400).json({ message: "User ID is required" });
-    }
-
-    if (quantity < 1) {
-      return res.status(400).json({ message: "Quantity must be at least 1" });
-    }
-
     const user = await User.findById(userId);
-    const post = await Post.findById(postId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (!post) {
-      return res.status(404).json({ message: "Post not found" });
-    }
-
-    const cartItem = user.cart.find(
-      (item) => item.postId.toString() === postId
+    user.cart = user.cart.filter(
+      (item) => item.postId.toString() !== postId.toString()
     );
 
-    if (!cartItem) {
-      return res.status(400).json({ message: "Post not in cart" });
-    }
-
-    if (quantity >= cartItem.quantity) {
-      // Remove item completely
-      post.quantity += cartItem.quantity;
-      user.cart = user.cart.filter(
-        (item) => item.postId.toString() !== postId
-      );
-    } else {
-      cartItem.quantity -= quantity;
-      post.quantity += quantity;
-    }
-
-    await post.save();
     await user.save();
 
     return res.status(200).json({
@@ -401,6 +354,8 @@ export const removeFromCart = async (req, res) => {
     return res.status(500).json({ message: e.message });
   }
 };
+
+
 
 
 export const getCart = async (req, res) => {

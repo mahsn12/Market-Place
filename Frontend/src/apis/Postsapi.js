@@ -53,3 +53,9 @@ export const searchPostsByTitlePrefix = (query, params) =>
   api("/api/posts/search-prefix", {
     params: { q: query, ...params },
   });
+
+  export const detectCategoryFromImages = (images) =>
+  api("/api/ai/detect-category", {
+    method: "POST",
+    body: { images },
+  });

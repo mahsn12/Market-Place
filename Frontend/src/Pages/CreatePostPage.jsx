@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "../Style/CreatePostPage.css";
 import { createPost, updatePost } from "../apis/Postsapi";
 import { useToast } from "../components/ToastContext";
+import { detectCategoryFromImages } from "../apis/Postsapi";
+
 
 export default function CreatePostPage({
   onNavigate,
@@ -11,6 +13,7 @@ export default function CreatePostPage({
 }) {
   const { showSuccess, showError } = useToast();
   const [loading, setLoading] = useState(false);
+  const [detectingCategory, setDetectingCategory] = useState(false);
   const [formData, setFormData] = useState({
     title: existingPost?.title || "",
     description: existingPost?.description || "",
@@ -45,6 +48,35 @@ export default function CreatePostPage({
     { value: "fair", label: "Fair", desc: "Visible wear & tear" },
   ];
 
+ const detectCategory = async (images) => {
+  try {
+    setDetectingCategory(true);
+
+    const response = await detectCategoryFromImages(images);
+
+    const detected = response?.category?.toLowerCase();
+
+    const allowedCategories = categories.map(c => c.value);
+
+    if (!allowedCategories.includes(detected)) {
+      throw new Error("Invalid category from AI");
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      category: detected,
+    }));
+
+    showSuccess(`Category detected: ${detected}`);
+  } catch (err) {
+    console.error("Category detection failed:", err);
+    showError("Could not detect category. Please select manually.");
+  } finally {
+    setDetectingCategory(false);
+  }
+};
+
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -68,10 +100,20 @@ export default function CreatePostPage({
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreviews((prev) => [...prev, reader.result]);
-        setFormData((prev) => ({
-          ...prev,
-          images: [...prev.images, reader.result],
-        }));
+
+        setFormData((prev) => {
+          const updatedImages = [...prev.images, reader.result];
+
+          // 🔥 Detect category ONLY on first image
+          if (prev.images.length === 0) {
+            detectCategory(updatedImages);
+          }
+
+          return {
+            ...prev,
+            images: updatedImages,
+          };
+        });
       };
       reader.readAsDataURL(file);
     });
@@ -99,7 +141,7 @@ export default function CreatePostPage({
       return false;
     }
     if (!formData.category) {
-      showError("Category is required");
+      showError("Category is being detected from images");
       return false;
     }
     if (formData.price && formData.price < 0) {
@@ -239,6 +281,16 @@ export default function CreatePostPage({
                 <label htmlFor="category">
                   Category <span className="required">*</span>
                 </label>
+                {detectingCategory && (
+                  <p style={{ color: "#999", marginTop: "4px" }}>
+                    Detecting category from image...
+                  </p>
+                )}
+                {formData.category && !detectingCategory && (
+                  <p style={{ color: "#4caf50", marginTop: "4px" }}>
+                    Detected: {formData.category}
+                  </p>
+                )}
                 <div className="category-grid">
                   {categories.map((cat) => (
                     <label
@@ -252,9 +304,10 @@ export default function CreatePostPage({
                         name="category"
                         value={cat.value}
                         checked={formData.category === cat.value}
-                        onChange={handleInputChange}
+                        onChange={handleInputChange}  // Re-enable this
                         hidden
                       />
+
                       <span className="category-emoji">{cat.emoji}</span>
                       <span className="category-name">{cat.label}</span>
                     </label>
@@ -336,7 +389,6 @@ export default function CreatePostPage({
                   </p>
                 </div>
                 <div className="form-group">
-                {/* price */}
                   <label htmlFor="quantity">
                     Quantity <span className="required">*</span>
                   </label>
@@ -354,7 +406,6 @@ export default function CreatePostPage({
                     Number of items available
                   </p>
                 </div>
-
 
                 {/* Location */}
                 <div className="form-group">
