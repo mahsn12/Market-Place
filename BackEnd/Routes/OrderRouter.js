@@ -10,6 +10,7 @@ import {
   getOrdersBySeller,
   paymentWebhook,
   getSalesSummary,
+  convertCartToOrders
 } from "../Controller/OrderController.js";
 import { authMiddleware } from "../Middleware/auth.js";
 
@@ -35,4 +36,9 @@ router.post("/payment/webhook", paymentWebhook);
 
 router.get("/seller/analytics", getSalesSummary);
 
+router.post(
+  "/cart/convert",
+  authMiddleware,
+  convertCartToOrders
+);
 export default router;

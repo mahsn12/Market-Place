@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const orderSchema = mongoose.Schema(
+const orderSchema = new mongoose.Schema(
   {
     buyerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,11 +14,42 @@ const orderSchema = mongoose.Schema(
       required: true,
     },
 
-    products: [
+    // 📦 Shipping Address (FIXED & REQUIRED)
+    shippingAddress: {
+      fullName: {
+        type: String,
+        required: true,
+      },
+      phone: {
+        type: String,
+        required: true,
+      },
+      street: {
+        type: String,
+        required: true,
+      },
+      city: {
+        type: String,
+        required: true,
+      },
+      state: {
+        type: String,
+      },
+      country: {
+        type: String,
+        default: "Egypt",
+      },
+      postalCode: {
+        type: String,
+      },
+    },
+
+    // 🛒 Items (POSTS, not products)
+    items: [
       {
-        productId: {
+        postId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
+          ref: "Post",
           required: true,
         },
         quantity: {
@@ -28,7 +59,7 @@ const orderSchema = mongoose.Schema(
         },
         price: {
           type: Number,
-          required: true,
+          required: true, // price snapshot at purchase time
         },
       },
     ],
@@ -38,17 +69,16 @@ const orderSchema = mongoose.Schema(
       required: true,
     },
 
-    // zyadat mn chatgpt 3ashan el payment status
-
+    // 💳 Payment State
     paid: {
       type: Boolean,
       default: false,
     },
 
     paymentInfo: {
-      provider: { type: String }, // e.g., 'stripe'
-      providerId: { type: String }, // payment_intent_id, checkout_session_id
-      status: { type: String }, // 'pending', 'succeeded', 'failed'
+      provider: { type: String },     // e.g. "stripe"
+      providerId: { type: String },   // payment_intent_id
+      status: { type: String },       // pending | succeeded | failed
     },
 
     refunded: {
@@ -56,11 +86,21 @@ const orderSchema = mongoose.Schema(
       default: false,
     },
 
+    // 🕒 Order Timeline (audit log)
     timeline: [
       {
-        status: { type: String, required: true },
-        date: { type: Date, default: Date.now },
-        by: { type: mongoose.Schema.Types.ObjectId, ref: "User" }, // sellerId, buyerId, or system
+        status: {
+          type: String,
+          required: true,
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        by: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
       },
     ],
 
@@ -72,7 +112,6 @@ const orderSchema = mongoose.Schema(
 
     orderDate: {
       type: Date,
-      required: true,
       default: Date.now,
     },
   },

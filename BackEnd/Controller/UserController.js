@@ -228,7 +228,7 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    if (!process.env.JWT_secret_key) {
+    if (!"73fa407a64869ff89c9495af63b490d50097f50ba1463b47c9f6181117774d9b") {
       return res
         .status(500)
         .json({ message: "Server auth secret is not configured" });
@@ -254,7 +254,7 @@ export const loginUser = async (req, res) => {
 
     const token = jwt.sign(
       { id: userFound._id, email: userFound.email },
-      process.env.JWT_secret_key,
+      "73fa407a64869ff89c9495af63b490d50097f50ba1463b47c9f6181117774d9b",
       { expiresIn: "1d" }
     );
 

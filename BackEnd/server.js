@@ -6,6 +6,7 @@ import MessageRouter from "./Routes/MessageRouter.js";
 import OfferRouter from "./Routes/OfferRouter.js";
 import cors from "cors";
 import aiRoutes from "./Routes/ai.routes.js";
+import orderRoutes from "./Routes/OrderRouter.js"
 
 
 
@@ -30,6 +31,7 @@ app.use("/api/posts", postRoutes );
 app.use("/api/messages", MessageRouter);
 app.use("/api/offers", OfferRouter);
 app.use("/api/ai", aiRoutes);
+app.use("/api/orders",orderRoutes)
 
 try {
   await Database();

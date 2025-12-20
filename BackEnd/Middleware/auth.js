@@ -9,7 +9,7 @@ export const authMiddleware = (req, res, next) => {
       return res.status(401).json({ message: "No token provided" });
     }
     const token = authorize.split(" ")[1];
-    const coded = jwt.verify(token, process.env.JWT_secret_key);
+    const coded = jwt.verify(token, "73fa407a64869ff89c9495af63b490d50097f50ba1463b47c9f6181117774d9b");
     req.user = coded;
 
     next();

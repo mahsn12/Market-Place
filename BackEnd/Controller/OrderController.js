@@ -2,85 +2,136 @@ import { request, response } from "express";
 import mongoose from "mongoose";
 import Order from "../Model/Order.js";
 import User from "../Model/User.js";
-import Product from "../Model/Product.js";
+import Post from "../Model/Post.js";
 
 // --- Helpers ---
-async function calculateTotalPrice(products) {
+async function calculateTotalPrice(items) {
   let total = 0;
-  for (const item of products) {
+  for (const item of items) {
     if (item.price != null) {
       total += item.price * item.quantity;
     } else {
-      const prod = await Product.findById(item.productId).select("price");
-      if (!prod) throw new Error(`Product not found: ${item.productId}`);
-      total += prod.price * item.quantity;
+      const post = await Post.findById(item.postId).select("price");
+      if (!post) throw new Error(`Post not found: ${item.postId}`);
+      total += post.price * item.quantity;
     }
   }
   return total;
 }
 
-async function validateAndReserveStock(products) {
-  for (const item of products) {
-    const prod = await Product.findById(item.productId).select(
-      "stock status sellerId"
-    );
-    if (!prod) throw new Error(`Product not found: ${item.productId}`);
-    if (prod.status === "sold")
-      throw new Error(`Product already sold: ${item.productId}`);
-    if (typeof prod.stock === "number") {
-      if (prod.stock < item.quantity)
-        throw new Error(`Insufficient stock for product ${item.productId}`);
-      prod.stock -= item.quantity;
-      if (prod.stock === 0) prod.status = "sold";
-      await prod.save();
+async function validateAndReserveItems(items, sellerId, session) {
+  for (const item of items) {
+    const post = await Post.findById(item.postId)
+      .select("quantity sellerId price")
+      .session(session);
+    
+    if (!post) throw new Error(`Post not found: ${item.postId}`);
+    
+    // Validate post belongs to the seller
+    if (post.sellerId.toString() !== sellerId.toString()) {
+      throw new Error(`Post ${item.postId} does not belong to seller ${sellerId}`);
+    }
+    
+    // Check if there's enough quantity
+    if (post.quantity < item.quantity) {
+      throw new Error(`Insufficient quantity for post ${item.postId}. Available: ${post.quantity}, Requested: ${item.quantity}`);
+    }
+    
+    // Decrement the quantity
+    post.quantity -= item.quantity;
+    await post.save({ session });
+    
+    // Store the price at time of purchase for record keeping
+    if (!item.price) {
+      item.price = post.price;
     }
   }
 }
 
-// Create Order (transactional) — reserves inventory and writes timeline
+// Create Order (TRANSACTIONAL) — reserves quantity and creates order
 export const createOrder = async (request, response) => {
-  // TLDR: Creates an order transactionally, reserves stock, logs initial timeline, and prepares for payment.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  
   try {
-    const { sellerId, products } = request.body;
+    const { sellerId, items, shippingAddress } = request.body;
     const buyerId = request.user.id;
 
     if (
       !buyerId ||
       !sellerId ||
-      !products ||
-      !Array.isArray(products) ||
-      products.length === 0
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return response
         .status(400)
-        .json({ message: "sellerId and products[] are required" });
+        .json({ message: "sellerId and items[] are required" });
     }
 
-    const buyer = await User.findById(buyerId);
-    if (!buyer) throw new Error("Buyer not found");
+    // Validate shipping address (required fields from schema)
+    if (!shippingAddress || 
+        !shippingAddress.fullName || 
+        !shippingAddress.phone || 
+        !shippingAddress.street || 
+        !shippingAddress.city) {
+      await session.abortTransaction();
+      session.endSession();
+      return response.status(400).json({ 
+        message: "Shipping address with fullName, phone, street, and city are required" 
+      });
+    }
 
-    const seller = await User.findById(sellerId);
-    if (!seller) throw new Error("Seller not found");
+    // Prevent self-purchase
+    if (buyerId.toString() === sellerId.toString()) {
+      await session.abortTransaction();
+      session.endSession();
+      return response.status(400).json({
+        message: "You cannot buy your own post",
+      });
+    }
 
-    const totalPrice = await calculateTotalPrice(products);
+    const buyer = await User.findById(buyerId).session(session);
+    if (!buyer) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Buyer not found");
+    }
 
-    await validateAndReserveStock(products);
+    const seller = await User.findById(sellerId).session(session);
+    if (!seller) {
+      await session.abortTransaction();
+      session.endSession();
+      throw new Error("Seller not found");
+    }
+
+    const totalPrice = await calculateTotalPrice(items);
+    
+    // Validate and reserve items IN TRANSACTION
+    await validateAndReserveItems(items, sellerId, session);
 
     const order = new Order({
       buyerId,
       sellerId,
-      products,
+      shippingAddress,
+      items,
       totalPrice,
       status: "Pending",
       paid: false,
       refunded: false,
       paymentInfo: {},
       timeline: [{ status: "Pending", date: new Date(), by: buyerId }],
+      orderDate: new Date(),
     });
 
-    await order.save();
+    await order.save({ session });
 
-    // TODO: Integrate payment (e.g., create a Stripe Checkout session). Return payment instructions to client.
+    await session.commitTransaction();
+    session.endSession();
+
+    // TODO: Integrate payment
     const payment = {
       provider: "stripe",
       clientSecret: null,
@@ -99,13 +150,14 @@ export const createOrder = async (request, response) => {
         result: order,
       });
   } catch (e) {
+    await session.abortTransaction();
+    session.endSession();
     return response.status(500).json({ message: e.message });
   }
 };
 
 // List orders with pagination and filters
 export const getAllOrders = async (request, response) => {
-  // TLDR: Returns paginated and filtered list of orders with buyer/seller/product info.
   try {
     const filter = {};
     const { buyerId, sellerId, status, page = 1, limit = 20 } = request.query;
@@ -121,7 +173,7 @@ export const getAllOrders = async (request, response) => {
       .limit(Number(limit))
       .populate("buyerId", "name email")
       .populate("sellerId", "name email")
-      .populate("products.productId", "name price");
+      .populate("items.postId", "title price quantity");
 
     const total = await Order.countDocuments(filter);
 
@@ -140,13 +192,12 @@ export const getAllOrders = async (request, response) => {
 };
 
 export const getOrderById = async (request, response) => {
-  // TLDR: Fetches a single order with buyer, seller, and product details.
   try {
     const { id } = request.params;
     const order = await Order.findById(id)
       .populate("buyerId", "name email")
       .populate("sellerId", "name email")
-      .populate("products.productId", "name price stock");
+      .populate("items.postId", "title price quantity");
 
     if (!order)
       return response.status(404).json({ message: "Order not found" });
@@ -159,13 +210,17 @@ export const getOrderById = async (request, response) => {
 
 // Update order (allowed for pending orders for address/payment updates)
 export const updateOrder = async (request, response) => {
-  // TLDR: Updates order info (price recalculated if products changed).
+  // Note: Changing items after creation is complex - might need to restore old quantities
+  // and reserve new ones. Consider making items immutable after creation.
   try {
     const { id } = request.params;
     const updates = request.body;
 
-    if (updates.products) {
-      updates.totalPrice = await calculateTotalPrice(updates.products);
+    // Prevent changing items after order is created (too complex with inventory)
+    if (updates.items && updates.items.length > 0) {
+      return response.status(400).json({ 
+        message: "Cannot change items after order creation. Cancel and create new order instead." 
+      });
     }
 
     const updated = await Order.findByIdAndUpdate(id, updates, {
@@ -183,9 +238,8 @@ export const updateOrder = async (request, response) => {
   }
 };
 
-// Update status (handles stock restoration on cancel, product marking on delivered)
+// Update status (handles quantity restoration on cancel)
 export const updateOrderStatus = async (request, response) => {
-  // TLDR: Changes order status, manages stock restoration or marking sold, logs timeline.
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -209,30 +263,19 @@ export const updateOrderStatus = async (request, response) => {
     const order = await Order.findById(id).session(session);
     if (!order) throw new Error("Order not found");
 
-    // Naive permission checks — replace with real auth in production
+    // Permission checks
     if (status === "Shipped") {
       if (!actorId || actorId.toString() !== order.sellerId.toString())
         throw new Error("Only seller can mark as Shipped");
     }
 
     if (status === "Cancelled") {
-      // restore stock
-      for (const item of order.products) {
-        const prod = await Product.findById(item.productId).session(session);
-        if (prod && typeof prod.stock === "number") {
-          prod.stock += item.quantity;
-          if (prod.stock > 0) prod.status = "available";
-          await prod.save({ session });
-        }
-      }
-    }
-
-    if (status === "Delivered") {
-      for (const item of order.products) {
-        const prod = await Product.findById(item.productId).session(session);
-        if (prod) {
-          prod.status = "sold";
-          await prod.save({ session });
+      // restore quantity IN TRANSACTION
+      for (const item of order.items) {
+        const post = await Post.findById(item.postId).session(session);
+        if (post && typeof post.quantity === "number") {
+          post.quantity += item.quantity;
+          await post.save({ session });
         }
       }
     }
@@ -257,21 +300,28 @@ export const updateOrderStatus = async (request, response) => {
   }
 };
 
-// Cancel (soft delete) — marks Cancelled and restores stock
+// Cancel (soft delete) — marks Cancelled and restores quantity
 export const deleteOrder = async (request, response) => {
-  // TLDR: Cancels order, restores stock, and logs cancellation in timeline.
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { id } = request.params;
     const { actorId } = request.body;
 
-    const order = await Order.findById(id);
-    if (!order)
+    const order = await Order.findById(id).session(session);
+    if (!order) {
+      await session.abortTransaction();
+      session.endSession();
       return response.status(404).json({ message: "Order not found" });
+    }
 
     if (
       order.status === "Shipped" &&
       (!actorId || actorId !== order.sellerId.toString())
     ) {
+      await session.abortTransaction();
+      session.endSession();
       return response
         .status(403)
         .json({ message: "Cannot delete an order that has been shipped" });
@@ -284,34 +334,38 @@ export const deleteOrder = async (request, response) => {
       date: new Date(),
       by: actorId || null,
     });
-    await order.save();
+    await order.save({ session });
 
-    for (const item of order.products) {
-      const prod = await Product.findById(item.productId);
-      if (prod && typeof prod.stock === "number") {
-        prod.stock += item.quantity;
-        if (prod.stock > 0) prod.status = "available";
-        await prod.save();
+    // Restore quantity to posts IN TRANSACTION
+    for (const item of order.items) {
+      const post = await Post.findById(item.postId).session(session);
+      if (post && typeof post.quantity === "number") {
+        post.quantity += item.quantity;
+        await post.save({ session });
       }
     }
+
+    await session.commitTransaction();
+    session.endSession();
 
     // enqueue refund job if needed
 
     return response
       .status(200)
-      .json({ message: "Order cancelled and stock restored", result: order });
+      .json({ message: "Order cancelled and quantity restored", result: order });
   } catch (e) {
+    await session.abortTransaction();
+    session.endSession();
     return response.status(500).json({ message: e.message });
   }
 };
 
 export const getOrdersByBuyer = async (request, response) => {
-  // TLDR: Returns all orders placed by a specific buyer.
   try {
     const { buyerId } = request.params;
     const orders = await Order.find({ buyerId }).populate(
-      "products.productId",
-      "name price"
+      "items.postId",
+      "title price"
     );
     return response
       .status(200)
@@ -322,12 +376,11 @@ export const getOrdersByBuyer = async (request, response) => {
 };
 
 export const getOrdersBySeller = async (request, response) => {
-  // TLDR: Returns all orders that belong to a seller.
   try {
     const { sellerId } = request.params;
     const orders = await Order.find({ sellerId }).populate(
-      "products.productId",
-      "name price"
+      "items.postId",
+      "title price"
     );
     return response
       .status(200)
@@ -339,9 +392,8 @@ export const getOrdersBySeller = async (request, response) => {
 
 // Webhook from payment provider to update payment status (simplified)
 export const paymentWebhook = async (request, response) => {
-  // TLDR: Handles payment provider callbacks and updates order payment status.
   try {
-    const event = request.body; // verify signature in production
+    const event = request.body;
 
     if (event.type === "payment_intent.succeeded") {
       const orderId = event.data?.object?.metadata?.orderId;
@@ -369,7 +421,6 @@ export const paymentWebhook = async (request, response) => {
 
 // Sales analytics for seller
 export const getSalesSummary = async (request, response) => {
-  // TLDR: Returns sales analytics for a seller over a selected time range.
   try {
     const { sellerId, days = 30 } = request.query;
     if (!sellerId)
@@ -385,13 +436,13 @@ export const getSalesSummary = async (request, response) => {
           status: { $in: ["Shipped", "Delivered"] },
         },
       },
-      { $unwind: "$products" },
+      { $unwind: "$items" },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
           totalRevenue: { $sum: "$totalPrice" },
-          totalItems: { $sum: "$products.quantity" },
+          totalItems: { $sum: "$items.quantity" },
         },
       },
     ]);
@@ -411,49 +462,154 @@ export const getSalesSummary = async (request, response) => {
   }
 };
 
-/*
-NEW FEATURES ADDED :
+// ✅ REFACTORED to use existing helpers and maintain consistency
+export const convertCartToOrders = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-1) Payment-ready fields and webhook handling
-   - Fields used: paid, paymentInfo, refunded
-   - `paymentWebhook` stub demonstrates how to mark orders paid when a provider (e.g., Stripe) calls your webhook.
+  try {
+    // ❗ لازم يكون جاي من authMiddleware
+    const buyerId = req.user?.id;
+    if (!buyerId) {
+      throw new Error("Unauthorized: buyer id missing");
+    }
 
-2) Timeline (audit trail)
-   - Every major event updates `timeline` with {status, date, by} to allow client UIs to render order history.
+    const { shippingAddress } = req.body;
 
-3) Atomic order creation with stock reservation
-   - Uses Mongoose transactions to reserve stock when creating an order, preventing race conditions.
-   - `validateAndReserveStock` decrements product stock inside the transaction.
+    // ✅ Validate reminder address
+    if (
+      !shippingAddress ||
+      !shippingAddress.fullName ||
+      !shippingAddress.phone ||
+      !shippingAddress.street ||
+      !shippingAddress.city
+    ) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        message:
+          "Shipping address with fullName, phone, street, and city is required",
+      });
+    }
 
-4) Stock restoration on cancel / failure
-   - When orders are cancelled (soft-delete) or explicitly cancelled via status change, product stock is restored.
+    // ✅ Load user + cart
+    const user = await User.findById(buyerId)
+      .populate("cart.postId", "sellerId price quantity")
+      .session(session);
 
-5) Status transition guards (example)
-   - Basic checks to ensure only sellers mark shipped. Replace with proper role-based auth middleware.
+    if (!user || user.cart.length === 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: "Cart is empty" });
+    }
 
-6) Soft-delete / Cancel instead of hard delete
-   - Orders are marked `Cancelled` and kept for audit and analytics; stock is restored.
+    // 🔁 Group cart items by seller
+    const ordersBySeller = {};
 
-7) Sales analytics endpoint
-   - `getSalesSummary` gives totals for revenue, orders and items over a period.
+for (const cartItem of user.cart) {
+  if (!cartItem.postId) {
+    throw new Error("Invalid cart item (post missing)");
+  }
 
-8) Pagination and filtering for listing orders
-   - `getAllOrders` supports page/limit and common filters.
+  const sellerId = cartItem.postId.sellerId.toString();
 
-9) Refund and background job hooks
-   - Spots in code comment where you'd enqueue refund/background jobs (Bull/Agenda) for retries and long-running tasks.
+  if (sellerId === buyerId.toString()) {
+    throw new Error("You cannot buy your own post");
+  }
 
-10) Notification/webhook hooks
-   - Placeholders to call notification services (email/push) when important events occur (order created, paid, shipped).
+  // ✅ FIX IS HERE
+  const qty = Number(cartItem.quantity); // 🔥 NOT cartQuantity
 
-SECURITY & NEXT STEPS:
-- Replace naive actorId-based checks with real authentication and role/permission middleware.
-- Verify webhook signatures (Stripe signatures) to avoid forged events.
-- Add idempotency keys for webhook/event handling.
-- Add unit and integration tests for transaction flows (successful create, failure rollback, cancel/restore).
+  if (!Number.isInteger(qty) || qty <= 0) {
+    throw new Error(
+      `Invalid cart quantity for post ${cartItem.postId._id}`
+    );
+  }
 
-DB CHANGES REMINDER:
-- Order model must include: paid, paymentInfo, refunded, timeline (done).
-- Product model should include: stock (Number), status (available|sold), optionally reservedCount for complex inventory.
+  if (!ordersBySeller[sellerId]) {
+    ordersBySeller[sellerId] = [];
+  }
 
-*/
+  ordersBySeller[sellerId].push({
+    postId: cartItem.postId._id,
+    quantity: qty,
+    price: cartItem.postId.price,
+  });
+}
+
+
+    const createdOrders = [];
+
+    // 🧾 Create one order per seller
+    for (const sellerId in ordersBySeller) {
+      const items = ordersBySeller[sellerId];
+
+      // ✅ Validate stock + MINUS quantity safely
+      for (const item of items) {
+        const post = await Post.findById(item.postId)
+          .select("quantity sellerId price")
+          .session(session);
+
+        if (!post) {
+          throw new Error("Post not found");
+        }
+
+        if (post.sellerId.toString() !== sellerId) {
+          throw new Error("Post does not belong to seller");
+        }
+
+        if (post.quantity < item.quantity) {
+          throw new Error(
+            `Insufficient quantity. Available: ${post.quantity}, Requested: ${item.quantity}`
+          );
+        }
+
+        // ✅ HERE IS THE REAL SUBTRACTION
+        post.quantity = post.quantity - item.quantity;
+
+        await post.save({ session });
+      }
+
+      // ✅ Calculate total
+      const totalPrice = items.reduce(
+        (sum, i) => sum + i.price * i.quantity,
+        0
+      );
+
+      // ✅ Create order
+      const order = new Order({
+        buyerId,
+        sellerId,
+        shippingAddress,
+        items,
+        totalPrice,
+        status: "Pending",
+        paid: false,
+        refunded: false,
+        paymentInfo: {},
+        timeline: [{ status: "Pending", date: new Date(), by: buyerId }],
+        orderDate: new Date(),
+      });
+
+      await order.save({ session });
+      createdOrders.push(order);
+    }
+
+    // 🧹 Clear cart
+    user.cart = [];
+    await user.save({ session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      message: "Cart converted to orders successfully",
+      orders: createdOrders,
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error(err);
+    return res.status(500).json({ message: err.message });
+  }
+};
