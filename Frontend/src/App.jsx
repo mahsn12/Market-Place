@@ -13,6 +13,7 @@ import { ToastProvider } from "./components/ToastContext";
 import "./App.css";
 import CartPage from "./Pages/CartPage"; 
 import SearchResultsPage from "./Pages/SearchResultsPage";
+import CheckoutPage from "./Pages/CheckOutPage";
 
 function App() {
   const [currentPage, setCurrentPage] = useState(
@@ -148,6 +149,13 @@ const handleSearch = (query) => {
                   onUserUpdate={handleUserUpdate}
                 />
               )}
+                  {currentPage === "checkout" && (
+                    <CheckoutPage
+                      onNavigate={handleNavigation}
+                      user={user}
+                    />
+                  )}
+                          
 
               {currentPage === "messages" && (
                 <MessagesPage

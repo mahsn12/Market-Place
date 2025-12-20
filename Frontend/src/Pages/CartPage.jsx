@@ -179,9 +179,13 @@ export default function CartPage({ onNavigate, isLoggedIn }) {
 
       <div className="seller-cta" style={{ marginTop: "3rem" }}>
         <h2>Total: ${totalPrice.toFixed(2)}</h2>
-        <button className="btn-primary btn-lg">
-          Convert Cart to Order
-        </button>
+              <button
+                className="btn-primary btn-lg"
+                onClick={() => onNavigate("checkout")}
+              >
+                Convert Cart to Order
+              </button>
+
       </div>
     </div>
   );
