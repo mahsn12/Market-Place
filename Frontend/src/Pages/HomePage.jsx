@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
 import { getAllPosts, searchPosts, getCategories } from "../apis/Postsapi";
-import { startConversation } from "../apis/Messagesapi";
 import { useToast } from "../components/ToastContext";
 
 export default function HomePage({
@@ -18,6 +17,10 @@ export default function HomePage({
   const [categories, setCategories] = useState(["all"]);
   const [loading, setLoading] = useState(false);
   const { showSuccess } = useToast();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [postsPerPage] = useState(8);
 
   // Animated stats for UX — simulate active users/listings/sellers
   // Smaller, believable initial counts for a modest marketplace
@@ -114,12 +117,13 @@ export default function HomePage({
           response = await searchPosts(externalSearchQuery);
         } else {
           // Use getAllPosts when no search
-          response = await getAllPosts({ limit: 50 });
+          response = await getAllPosts({ limit: 100 }); // Get more posts for pagination
         }
         
         const fetchedPosts = response?.result || [];
         setPosts(fetchedPosts);
         setFilteredPosts(fetchedPosts);
+        setCurrentPage(1); // Reset to first page when new data loads
       } catch (e) {
         console.error("Failed to fetch posts:", e);
         setPosts([]);
@@ -144,7 +148,50 @@ export default function HomePage({
     }
 
     setFilteredPosts(filtered);
+    setCurrentPage(1); // Reset to first page when category changes
   }, [selectedCategory, posts]);
+
+  // Calculate pagination
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Generate page numbers
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
+  }
+
+  // Show limited page numbers
+  const getPageNumbersToShow = () => {
+    const maxPagesToShow = 5;
+    let startPage, endPage;
+    
+    if (totalPages <= maxPagesToShow) {
+      startPage = 1;
+      endPage = totalPages;
+    } else {
+      if (currentPage <= 3) {
+        startPage = 1;
+        endPage = maxPagesToShow;
+      } else if (currentPage + 2 >= totalPages) {
+        startPage = totalPages - maxPagesToShow + 1;
+        endPage = totalPages;
+      } else {
+        startPage = currentPage - 2;
+        endPage = currentPage + 2;
+      }
+    }
+    
+    return pageNumbers.slice(startPage - 1, endPage);
+  };
 
   const handleContactSeller = (post) => {
     if (!isLoggedIn) {
@@ -152,25 +199,9 @@ export default function HomePage({
       return;
     }
 
-    const currentUserId = user?.id || user?._id;
-    const sellerId = post.sellerId?._id || post.sellerId;
-
-    if (!sellerId || sellerId.toString() === currentUserId?.toString()) {
-      showSuccess("You cannot message yourself");
-      return;
-    }
-
-    // Start (or retrieve) conversation then navigate to messages
-    (async () => {
-      try {
-        await startConversation(sellerId, post._id);
-        showSuccess("Opening chat with seller...");
-        onNavigate("messages");
-      } catch (err) {
-        console.error(err);
-        showSuccess(err?.message || "Failed to open chat");
-      }
-    })();
+    // Navigate to seller profile or show contact modal
+    onNavigate("seller-profile", { sellerId: post.sellerId });
+    showSuccess("View seller profile to contact");
   };
 
   const handleStartShoppingClick = () => {
@@ -288,6 +319,9 @@ export default function HomePage({
                   selectedCategory.charAt(0).toUpperCase() +
                   selectedCategory.slice(1)
                 } Listings`}
+            <span className="pagination-info">
+              ({filteredPosts.length} total items)
+            </span>
           </h2>
           {!isLoggedIn && (
             <p className="product-notice">Login to browse and list items!</p>
@@ -314,70 +348,139 @@ export default function HomePage({
             )}
           </div>
         ) : (
-          <div className="products-grid">
-            {filteredPosts.map((post) => (
-              <div
-                key={post._id}
-                className="product-card"
-                onClick={() => {
-                  if (isLoggedIn) {
-                    onNavigate("post-details", { post });
-                  } else {
-                    onNavigate("login");
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="product-image">
-                  <img
-                    src={post.images?.[0] || ""}
-                    alt={post.title}
-                    className="product-img"
-                    style={{ display: post.images?.[0] ? "block" : "none" }}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <span
-                    className="product-emoji"
-                    style={{ display: post.images?.[0] ? "none" : "flex" }}
-                  >
-                    📦
-                  </span>
-                </div>
-                <div className="product-content">
-                  <h3 className="product-name">{post.title}</h3>
-                  <p className="product-description">
-                    {post.description?.substring(0, 60)}...
-                  </p>
-                  <div className="product-meta">
-                    <span className="category">{post.category}</span>
-                    <span className="rating">
-                      ⭐ {post.likes?.length || 0} likes
+          <>
+            <div className="products-grid">
+              {currentPosts.map((post) => (
+                <div
+                  key={post._id}
+                  className="product-card"
+                  onClick={() => {
+                    if (isLoggedIn) {
+                      onNavigate("post-details", { post });
+                    } else {
+                      onNavigate("login");
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="product-image">
+                    <img
+                      src={post.images?.[0] || ""}
+                      alt={post.title}
+                      className="product-img"
+                      style={{ display: post.images?.[0] ? "block" : "none" }}
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
+                      }}
+                    />
+                    <span
+                      className="product-emoji"
+                      style={{ display: post.images?.[0] ? "none" : "flex" }}
+                    >
+                      📦
                     </span>
                   </div>
-                  <div className="product-footer">
-                    {post.price && (
-                      <span className="price">${post.price.toFixed(2)}</span>
-                    )}
-                    <div className="btn-group">
-                      <button
-                        className="btn-contact"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContactSeller(post);
-                        }}
-                        disabled={!isLoggedIn}
-                      >
-                        {!isLoggedIn ? "Login" : "Contact"}
-                      </button>
+                  <div className="product-content">
+                    <h3 className="product-name">{post.title}</h3>
+                    <p className="product-description">
+                      {post.description?.substring(0, 60)}...
+                    </p>
+                    <div className="product-meta">
+                      <span className="category">{post.category}</span>
+                      <span className="rating">
+                        ⭐ {post.likes?.length || 0} likes
+                      </span>
+                    </div>
+                    <div className="product-footer">
+                      {post.price && (
+                        <span className="price">${post.price.toFixed(2)}</span>
+                      )}
+                      <div className="btn-group">
+                        <button
+                          className="btn-contact"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleContactSeller(post);
+                          }}
+                          disabled={!isLoggedIn}
+                        >
+                          {!isLoggedIn ? "Login" : "Contact"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn prev"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </button>
+                
+                <div className="page-numbers">
+                  {/* Show first page if not in view */}
+                  {currentPage > 3 && totalPages > 5 && (
+                    <>
+                      <button
+                        className={`page-number ${1 === currentPage ? "active" : ""}`}
+                        onClick={() => handlePageChange(1)}
+                      >
+                        1
+                      </button>
+                      <span className="page-ellipsis">...</span>
+                    </>
+                  )}
+                  
+                  {/* Show page numbers */}
+                  {getPageNumbersToShow().map((number) => (
+                    <button
+                      key={number}
+                      className={`page-number ${number === currentPage ? "active" : ""}`}
+                      onClick={() => handlePageChange(number)}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                  
+                  {/* Show last page if not in view */}
+                  {currentPage < totalPages - 2 && totalPages > 5 && (
+                    <>
+                      <span className="page-ellipsis">...</span>
+                      <button
+                        className={`page-number ${totalPages === currentPage ? "active" : ""}`}
+                        onClick={() => handlePageChange(totalPages)}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  className="pagination-btn next"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Page info */}
+            <div className="page-info">
+              Showing {indexOfFirstPost + 1} to{" "}
+              {Math.min(indexOfLastPost, filteredPosts.length)} of{" "}
+              {filteredPosts.length} listings (Page {currentPage} of {totalPages})
+            </div>
+          </>
         )}
       </section>
 
@@ -445,8 +548,7 @@ export default function HomePage({
                     handleCreatePost();
                   }}
                 >
-                  Create Listing
-                </a>
+                  Create Listing</a>
               </li>
               <li>
                 <a href="#seller-guide">Seller Guide</a>
