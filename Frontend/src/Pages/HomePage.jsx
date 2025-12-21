@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
 import { getAllPosts, searchPosts, getCategories } from "../apis/Postsapi";
+import { startConversation } from "../apis/Messagesapi";
 import { useToast } from "../components/ToastContext";
 
 export default function HomePage({
@@ -68,9 +69,25 @@ export default function HomePage({
       return;
     }
 
-    // Navigate to seller profile or show contact modal
-    onNavigate("seller-profile", { sellerId: post.sellerId });
-    showSuccess("View seller profile to contact");
+    const currentUserId = user?.id || user?._id;
+    const sellerId = post.sellerId?._id || post.sellerId;
+
+    if (!sellerId || sellerId.toString() === currentUserId?.toString()) {
+      showSuccess("You cannot message yourself");
+      return;
+    }
+
+    // Start (or retrieve) conversation then navigate to messages
+    (async () => {
+      try {
+        await startConversation(sellerId, post._id);
+        showSuccess("Opening chat with seller...");
+        onNavigate("messages");
+      } catch (err) {
+        console.error(err);
+        showSuccess(err?.message || "Failed to open chat");
+      }
+    })();
   };
 
   const handleStartShoppingClick = () => {
