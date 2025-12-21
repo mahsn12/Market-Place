@@ -12,6 +12,7 @@ import {
 import { getCart, removeFromCart } from "../apis/Userapi";
 import { startConversation } from "../apis/Messagesapi";
 import { addToCart } from "../apis/Userapi";
+
 export default function PostDetailsPage({
   postId,
   post: initialPost,
@@ -36,14 +37,10 @@ export default function PostDetailsPage({
   const [cartQty, setCartQty] = useState(1);
   const [isInCart, setIsInCart] = useState(false);
   const [cartItemQty, setCartItemQty] = useState(0);
-
+  const [quantityError, setQuantityError] = useState("");
 
   const CAROUSEL_INTERVAL = 10000; // 10 seconds
-  const stockQty =
-  post?.quantity ??
-  post?.availableQuantity ??
-  0;
-
+  const stockQty = post?.quantity ?? post?.availableQuantity ?? 0;
   const normalizedPostId = post?._id || post?.postId;
 
   const conditionLabels = {
@@ -65,12 +62,10 @@ export default function PostDetailsPage({
       return;
     }
 
-    // Clear existing timer
     if (autoPlayTimer) {
       clearInterval(autoPlayTimer);
     }
 
-    // Set new timer for auto-cycling
     const timer = setInterval(() => {
       setCurrentImageIndex((prev) =>
         prev === post.images.length - 1 ? 0 : prev + 1
@@ -104,89 +99,109 @@ export default function PostDetailsPage({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [lightboxOpen, post?.images]);
 
-const handleRemoveFromCart = async () => {
-  try {
-    setLoading(true);
-
-    await removeFromCart({
-      postId: post._id,
-      quantity: cartItemQty,
-    });
-
-    setIsInCart(false);
-    setCartItemQty(0);
-
-    showSuccess("Item removed from cart");
-  } catch (error) {
-    showError(error.message || "Failed to remove item from cart");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  useEffect(() => {
-  if (!isLoggedIn || !normalizedPostId) return;
-
-  const checkCart = async () => {
+  const handleRemoveFromCart = async () => {
     try {
-      const response = await getCart();
-      const cartItem = response.cart?.find(
-        (item) =>
-        (item.postId._id || item.postId) === normalizedPostId
-      );
-
-      if (cartItem) {
-        setIsInCart(true);
-        setCartItemQty(cartItem.cartQuantity);
-      } else {
-        setIsInCart(false);
-        setCartItemQty(0);
-      }
-    } catch (err) {
-      console.error("Failed to check cart status");
+      setLoading(true);
+      await removeFromCart({
+        postId: post._id,
+        quantity: cartItemQty,
+      });
+      setIsInCart(false);
+      setCartItemQty(0);
+      showSuccess("Item removed from cart");
+    } catch (error) {
+      showError(error.message || "Failed to remove item from cart");
+    } finally {
+      setLoading(false);
     }
   };
 
-  checkCart();
-}, [normalizedPostId, isLoggedIn]);
+  useEffect(() => {
+    if (!isLoggedIn || !normalizedPostId) return;
 
+    const checkCart = async () => {
+      try {
+        const response = await getCart();
+        const cartItem = response.cart?.find(
+          (item) => (item.postId._id || item.postId) === normalizedPostId
+        );
 
+        if (cartItem) {
+          setIsInCart(true);
+          setCartItemQty(cartItem.cartQuantity);
+        } else {
+          setIsInCart(false);
+          setCartItemQty(0);
+        }
+      } catch (err) {
+        console.error("Failed to check cart status");
+      }
+    };
 
-const handleAddToCart = async () => {
-  if (!isLoggedIn) {
-    onNavigate("login");
-    return;
-  }
+    checkCart();
+  }, [normalizedPostId, isLoggedIn]);
 
-  if (isOwner) {
-    showError("You cannot add your own item to cart");
-    return;
-  }
+  const handleQuantityChange = (value) => {
+    const numValue = Number(value);
+    
+    if (numValue < 1) {
+      setCartQty(1);
+      setQuantityError("Quantity must be at least 1");
+      showError("Quantity must be at least 1");
+    } else if (numValue > stockQty) {
+      setCartQty(stockQty);
+      setQuantityError(`Maximum available quantity is ${stockQty}`);
+      showError(`Cannot exceed available stock of ${stockQty}`);
+    } else {
+      setCartQty(numValue);
+      setQuantityError("");
+    }
+  };
 
-  if (cartQty < 1) {
-    showError("Quantity must be at least 1");
-    return;
-  }
+  const handleAddToCart = async () => {
+    if (!isLoggedIn) {
+      onNavigate("login");
+      return;
+    }
 
-  try {
-    setLoading(true);
+    if (isOwner) {
+      showError("You cannot add your own item to cart");
+      return;
+    }
 
-    await addToCart({
-      postId: normalizedPostId,
-      quantity: cartQty,
-    });
+    if (cartQty < 1) {
+      showError("Quantity must be at least 1");
+      return;
+    }
 
-    showSuccess("Post added to cart");
-  } catch (error) {
-    showError(error.message || "Failed to add to cart");
-  } finally {
-    setLoading(false);
-  }
-};
+    if (cartQty > stockQty) {
+      showError(`Cannot add ${cartQty} items. Only ${stockQty} available.`);
+      return;
+    }
 
-
-
+    try {
+      setLoading(true);
+      await addToCart({
+        postId: normalizedPostId,
+        quantity: cartQty,
+      });
+      showSuccess("Post added to cart");
+      
+      // Update cart status
+      const response = await getCart();
+      const cartItem = response.cart?.find(
+        (item) => (item.postId._id || item.postId) === normalizedPostId
+      );
+      if (cartItem) {
+        setIsInCart(true);
+        setCartItemQty(cartItem.cartQuantity);
+      }
+    } catch (error) {
+      showError(error.message || "Failed to add to cart");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchSellerProfile = async () => {
     try {
@@ -204,7 +219,6 @@ const handleAddToCart = async () => {
     setCurrentImageIndex((prev) =>
       prev === 0 ? post.images.length - 1 : prev - 1
     );
-    // Reset timer
     if (autoPlayTimer) {
       clearInterval(autoPlayTimer);
       setAutoPlayTimer(null);
@@ -215,7 +229,6 @@ const handleAddToCart = async () => {
     setCurrentImageIndex((prev) =>
       prev === post.images.length - 1 ? 0 : prev + 1
     );
-    // Reset timer
     if (autoPlayTimer) {
       clearInterval(autoPlayTimer);
       setAutoPlayTimer(null);
@@ -228,7 +241,6 @@ const handleAddToCart = async () => {
       return;
     }
 
-    // Validate user data - accept either user.id or user._id
     const userId = user?.id || user?._id;
     if (!user || !userId) {
       console.error("Invalid user data:", user);
@@ -238,10 +250,6 @@ const handleAddToCart = async () => {
 
     try {
       setLoading(true);
-      console.log("Toggling like with data:", {
-        postId: post._id,
-        userId: userId,
-      });
       const response = await toggleLikePost({
         postId: post._id,
         userId: userId,
@@ -280,7 +288,6 @@ const handleAddToCart = async () => {
       return;
     }
 
-    // Validate user data - accept either user.id or user._id
     const userId = user?.id || user?._id;
     if (!user || !userId || !user.name) {
       console.error("Invalid user data:", user);
@@ -290,13 +297,6 @@ const handleAddToCart = async () => {
 
     try {
       setCommentLoading(true);
-      console.log("Adding comment with data:", {
-        postId: post._id,
-        userId: userId,
-        userName: user.name,
-        text: comment.trim(),
-        userProfileImage: user.profileImage,
-      });
       const response = await addComment({
         postId: post._id,
         userId: userId,
@@ -341,7 +341,6 @@ const handleAddToCart = async () => {
       return;
     }
 
-    // Validate user data
     const userId = user?.id || user?._id;
     if (!user || !userId || !user.name) {
       showError("User information is missing. Please log in again.");
@@ -392,7 +391,7 @@ const handleAddToCart = async () => {
     }
 
     try {
-      const response = await startConversation(post.sellerId._id, post._id);
+      await startConversation(post.sellerId._id, post._id);
       showSuccess("Opening chat with seller...");
       onNavigate("messages");
     } catch (error) {
@@ -679,57 +678,82 @@ const handleAddToCart = async () => {
             </div>
           )}
 
-        {/* Actions */}
-            {!isOwner && (
-              <div className="cart-section">
-                {isInCart ? (
-                  /* 🔴 ALREADY IN CART */
-                  <div className="already-in-cart">
-                    <p>🛒 Item already in your cart ({cartItemQty})</p>
-
-                    <button
-                      className="action-btn remove-from-cart-btn"
-                      onClick={handleRemoveFromCart}
-                      disabled={loading}
-                    >
-                      ❌ Remove from Cart
-                    </button>
-                  </div>
-                ) :  stockQty > 0  ? (
-                  /* 🟢 NOT IN CART */
-                  <>
-                    <div className="cart-qty">
-                      <label>Quantity</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={cartQty}
-                        onChange={(e) =>
-                          setCartQty(Math.max(1, Number(e.target.value)))
-                        }
-                      />
-                          <span className="stock-left">
-                            {stockQty} in stock
-                          </span>
+          {/* Cart Section */}
+          {!isOwner && (
+            <div className="cart-section">
+              {isInCart ? (
+                /* 🔴 ALREADY IN CART */
+                <div className="already-in-cart">
+                  <div className="cart-info">
+                    <label>In Your Cart</label>
+                    <div className="cart-qty-container">
+                      <div className="cart-qty">
+                        <span>🛒 Item already in your cart ({cartItemQty})</span>
+                      </div>
                     </div>
-
-                    <button
-                      className="action-btn add-to-cart-btn"
-                      onClick={handleAddToCart}
-                      disabled={loading}
-                    >
-                      🛒 Add to Cart
-                    </button>
-                  </>
-                ) : (
-                  /* ⚫ OUT OF STOCK */
-                  <div className="out-of-stock">
-                    🚫 Out of Stock
                   </div>
-                )}
-              </div>
-            )}
-
+                  <button
+                    className="remove-from-cart-btn"
+                    onClick={handleRemoveFromCart}
+                    disabled={loading}
+                  >
+                    ❌ Remove from Cart
+                  </button>
+                </div>
+              ) : stockQty > 0 ? (
+                /* 🟢 NOT IN CART */
+                <>
+                  <div className="cart-info">
+                    <label>Quantity</label>
+                    <div className="cart-qty-container">
+                      <div className="cart-qty">
+                        <input
+                          type="number"
+                          min="1"
+                          max={stockQty}
+                          value={cartQty}
+                          onChange={(e) => handleQuantityChange(e.target.value)}
+                          onBlur={(e) => {
+                            if (e.target.value === "" || e.target.value < 1) {
+                              setCartQty(1);
+                              setQuantityError("");
+                            }
+                          }}
+                        />
+                      </div>
+                      <span className="stock-left">
+                        {stockQty} in stock
+                      </span>
+                    </div>
+                    {quantityError && (
+                      <div className="quantity-error">
+                        ⚠️ {quantityError}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    className="add-to-cart-btn"
+                    onClick={handleAddToCart}
+                    disabled={loading || cartQty > stockQty || cartQty < 1}
+                  >
+                    🛒 Add to Cart
+                  </button>
+                </>
+              ) : (
+                /* ⚫ OUT OF STOCK */
+                <div className="out-of-stock">
+                  <div className="cart-info">
+                    <label>Availability</label>
+                    <div className="cart-qty-container">
+                      <div className="cart-qty">
+                        <span>🚫 Out of Stock</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="actions-section">
             <button
