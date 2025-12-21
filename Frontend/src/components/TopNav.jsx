@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../Style/HomePage.css";
 import { getUnreadCount } from "../apis/Messagesapi";
 
@@ -12,40 +12,68 @@ export default function TopNavbar({
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // debounce timer ref
+  const searchTimeoutRef = useRef(null);
+
+  /* =======================
+     Unread messages polling
+     ======================= */
   useEffect(() => {
-    if (isLoggedIn) {
-      const fetchUnreadCount = async () => {
-        try {
-          const response = await getUnreadCount();
-          setUnreadCount(response.result?.totalUnread || 0);
-        } catch (error) {
-          console.error("Failed to fetch unread count:", error);
-        }
-      };
+    if (!isLoggedIn) return;
 
-      fetchUnreadCount();
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await getUnreadCount();
+        setUnreadCount(response.result?.totalUnread || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread count:", error);
+      }
+    };
 
-      // Poll every 5 seconds
-      const interval = setInterval(fetchUnreadCount, 5000);
-      return () => clearInterval(interval);
-    }
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 5000);
+
+    return () => clearInterval(interval);
   }, [isLoggedIn]);
+
+  /* =======================
+     Search handlers
+     ======================= */
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (!onSearch) return;
+
+    // clear previous debounce
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // debounce search
+    searchTimeoutRef.current = setTimeout(() => {
+      if (value.trim()) {
+        onSearch(value.trim()); // search with partial letters
+      } else {
+        onSearch(""); // 🔥 clear products when input is empty
+      }
+    }, 400);
+  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (onSearch && searchQuery.trim()) {
+    if (onSearch) {
       onSearch(searchQuery.trim());
     }
   };
 
-const handleSearchChange = (e) => {
-  setSearchQuery(e.target.value);
-};
-
-
+  /* =======================
+     JSX
+     ======================= */
   return (
     <div className="home-top-nav">
-      {/* Brand link back to homepage */}
+      {/* Brand */}
       <div
         className="home-brand"
         role="link"
@@ -73,48 +101,41 @@ const handleSearchChange = (e) => {
         </button>
       </form>
 
-      {/* icons section - all buttons on the right */}
+      {/* Right-side buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
         {isLoggedIn && (
           <>
-            {/* My Listings Button */}
             <button
               className="nav-button listings-button"
               onClick={() => onNavigate("my-listings")}
-              title="My Listings Dashboard"
             >
               📊 My Listings
             </button>
 
-            {/* Offers Button */}
             <button
               className="nav-button offers-button"
               onClick={() => onNavigate("offers")}
-              title="View Offers"
             >
               💰 Offers
             </button>
-            {/* Orders Button */}
+
             <button
               className="nav-button orders-button"
               onClick={() => onNavigate("orders")}
-              title="View Orders"
             >
               🧾 Orders
             </button>
-                {/* Cart Button */}
-          <button
-            className="nav-button cart-button"
-            onClick={() => onNavigate("cart")}
-            title="View Cart"
-          >
-            🛒 Cart
-          </button>
-            {/* Messages Button */}
+
+            <button
+              className="nav-button cart-button"
+              onClick={() => onNavigate("cart")}
+            >
+              🛒 Cart
+            </button>
+
             <button
               className="nav-button messages-button"
               onClick={() => onNavigate("messages")}
-              title="View Messages"
               style={{ position: "relative" }}
             >
               💬 Messages
@@ -161,17 +182,15 @@ const handleSearchChange = (e) => {
         {isLoggedIn && user && (
           <>
             <img
-              onClick={() => onNavigate("profile")}
               src={user.profileImage}
               alt="profile"
               className="home-profile"
+              onClick={() => onNavigate("profile")}
             />
 
-            {/* Single logout button */}
             <button
               className="nav-button logout-button"
               onClick={onLogout}
-              title="Logout"
             >
               Logout
             </button>
