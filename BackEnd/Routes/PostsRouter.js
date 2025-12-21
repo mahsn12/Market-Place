@@ -5,10 +5,10 @@ import {
   getAllPosts,
   searchPosts,
   getTrendingPosts,
-  toggleSavePost,
   reportPost,
   boostPost,
   followSeller,
+   getCategories,
   getSellerProfile,
   getPostsBySeller,
   toggleLikePost,
@@ -38,12 +38,12 @@ router.delete("/delete/:id", authMiddleware, deletePost);
 router.get("/all", getAllPosts);
 router.get("/search", searchPosts);
 router.get("/trending", getTrendingPosts);
+router.get("/categories", getCategories);
 
 /* =========================
    POST INTERACTIONS (AUTH)
 ========================= */
 
-router.patch("/save", authMiddleware, toggleSavePost);
 router.patch("/like", authMiddleware, toggleLikePost);
 router.post("/report", authMiddleware, reportPost);
 router.patch("/boost", authMiddleware, boostPost);

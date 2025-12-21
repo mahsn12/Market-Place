@@ -271,7 +271,6 @@ export const loginUser = async (req, res) => {
         rating: userFound.rating,
         ratingCount: userFound.ratingCount,
         cart: userFound.cart,
-        savedProducts: userFound.savedProducts,
         lastActive: userFound.lastActive,
       },
     });

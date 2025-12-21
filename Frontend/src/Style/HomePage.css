@@ -369,33 +369,57 @@
 /* Categories */
 .categories {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  /* allow horizontal scrolling on small screens */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Keep categories centered within page width */
+.search-section .categories {
+  /* match products-section width and inner padding so the pills align
+     with the "Featured Listings" header */
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.categories::-webkit-scrollbar {
+  height: 8px;
+}
+.categories::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 8px;
 }
 
 .category-pill {
-  margin-left: 5%;
-  margin-top: 5%;
-  padding: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0.45rem 1rem;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 2rem;
+  border-radius: 999px;
   color: #565758;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  flex: 0 0 auto; /* prevent shrinking when scrolling */
 }
 
 .category-pill:hover {
   border-color: #667eea;
-  background: #f3f4f6;
+  background: rgba(102,126,234,0.08);
 }
 
 .category-pill.active {
-  background: #000;
+  background: #667eea;
   color: white;
-  border-color: #000;
+  border-color: #667eea;
+  box-shadow: 0 6px 18px rgba(102,126,234,0.14);
 }
 
 /* Products Section */
@@ -623,6 +647,12 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-block;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.stat-number.bump {
+  transform: scale(1.08);
 }
 
 .stat-label {
@@ -837,5 +867,161 @@
 
   .btn-lg {
     min-width: auto;
+  }
+}
+
+/* Product card button group and contact button styles */
+.btn-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-contact {
+  padding: 0.45rem 0.85rem;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.btn-contact:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 123, 255, 0.18);
+}
+
+.btn-contact:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+/* Small responsive tweak for product card buttons */
+@media (max-width: 480px) {
+  .btn-contact {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+  }
+}
+/* Pagination Styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 40px 0 20px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f9fafb;
+  border-color: #007bff;
+  color: #007bff;
+  transform: translateY(-1px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.page-number {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.page-number:hover:not(.active) {
+  background: #f9fafb;
+  border-color: #007bff;
+  color: #007bff;
+  transform: translateY(-1px);
+}
+
+.page-number.active {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+}
+
+.page-ellipsis {
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 8px;
+}
+
+.page-info {
+  text-align: center;
+  color: #6c757d;
+  font-size: 14px;
+  margin-top: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.pagination-info {
+  font-size: 14px;
+  font-weight: normal;
+  color: #6c757d;
+  margin-left: 12px;
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination {
+    gap: 12px;
+  }
+  
+  .pagination-btn {
+    padding: 8px 16px;
+    min-width: 80px;
+    font-size: 13px;
+  }
+  
+  .page-number {
+    width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  
+  .page-info {
+    font-size: 12px;
   }
 }

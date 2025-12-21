@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
-import { getAllPosts, searchPosts } from "../apis/Postsapi";
+import { getAllPosts, searchPosts, getCategories } from "../apis/Postsapi";
 import { useToast } from "../components/ToastContext";
+import Footer from "../components/Footer";
 
 export default function HomePage({
   onNavigate,
@@ -14,8 +15,96 @@ export default function HomePage({
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState(["all"]);
   const [loading, setLoading] = useState(false);
   const { showSuccess } = useToast();
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [postsPerPage] = useState(8);
+
+  // Animated stats for UX — simulate active users/listings/sellers
+  // Smaller, believable initial counts for a modest marketplace
+  const [activeUsersCount, setActiveUsersCount] = useState(5200);
+  const [activeListingsCount, setActiveListingsCount] = useState(1200);
+  const [activeSellersCount, setActiveSellersCount] = useState(420);
+  const [bumpUsers, setBumpUsers] = useState(false);
+  const [bumpListings, setBumpListings] = useState(false);
+  const [bumpSellers, setBumpSellers] = useState(false);
+
+  const formatCompact = (n) => {
+    try {
+      return (
+        new Intl.NumberFormat("en", {
+          notation: "compact",
+          compactDisplay: "short",
+          maximumFractionDigits: 1,
+        }).format(n) + "+"
+      );
+    } catch (e) {
+      return String(n);
+    }
+  };
+
+  useEffect(() => {
+    // small fluctuating animation for counters
+    let mounted = true;
+
+    const usersInterval = setInterval(() => {
+      if (!mounted) return;
+      // small realistic fluctuation ±200
+      const delta = Math.floor((Math.random() - 0.5) * 400);
+      setActiveUsersCount((prev) => {
+        const min = 3000;
+        const max = 12000;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpUsers(true);
+      setTimeout(() => setBumpUsers(false), 350);
+    }, 2500 + Math.floor(Math.random() * 2000));
+
+    const listingsInterval = setInterval(() => {
+      if (!mounted) return;
+      // smaller fluctuation ±75
+      const delta = Math.floor((Math.random() - 0.5) * 150);
+      setActiveListingsCount((prev) => {
+        const min = 200;
+        const max = 2500;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpListings(true);
+      setTimeout(() => setBumpListings(false), 350);
+    }, 2200 + Math.floor(Math.random() * 1800));
+
+    const sellersInterval = setInterval(() => {
+      if (!mounted) return;
+      // small fluctuation ±12
+      const delta = Math.floor((Math.random() - 0.5) * 24);
+      setActiveSellersCount((prev) => {
+        const min = 80;
+        const max = 800;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpSellers(true);
+      setTimeout(() => setBumpSellers(false), 350);
+    }, 2600 + Math.floor(Math.random() * 2000));
+
+    return () => {
+      mounted = false;
+      clearInterval(usersInterval);
+      clearInterval(listingsInterval);
+      clearInterval(sellersInterval);
+    };
+  }, []);
 
   // Fetch posts on mount or when search is triggered
   useEffect(() => {
@@ -29,12 +118,13 @@ export default function HomePage({
           response = await searchPosts(externalSearchQuery);
         } else {
           // Use getAllPosts when no search
-          response = await getAllPosts({ limit: 50 });
+          response = await getAllPosts({ limit: 100 }); // Get more posts for pagination
         }
         
         const fetchedPosts = response?.result || [];
         setPosts(fetchedPosts);
         setFilteredPosts(fetchedPosts);
+        setCurrentPage(1); // Reset to first page when new data loads
       } catch (e) {
         console.error("Failed to fetch posts:", e);
         setPosts([]);
@@ -52,11 +142,57 @@ export default function HomePage({
     let filtered = posts;
 
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+      filtered = filtered.filter((p) =>
+        (p.category || "").toString().toLowerCase() ===
+        selectedCategory.toString().toLowerCase()
+      );
     }
 
     setFilteredPosts(filtered);
+    setCurrentPage(1); // Reset to first page when category changes
   }, [selectedCategory, posts]);
+
+  // Calculate pagination
+  const indexOfLastPost = currentPage * postsPerPage;
+  const indexOfFirstPost = indexOfLastPost - postsPerPage;
+  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+  // Handle page change
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Generate page numbers
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
+  }
+
+  // Show limited page numbers
+  const getPageNumbersToShow = () => {
+    const maxPagesToShow = 5;
+    let startPage, endPage;
+    
+    if (totalPages <= maxPagesToShow) {
+      startPage = 1;
+      endPage = totalPages;
+    } else {
+      if (currentPage <= 3) {
+        startPage = 1;
+        endPage = maxPagesToShow;
+      } else if (currentPage + 2 >= totalPages) {
+        startPage = totalPages - maxPagesToShow + 1;
+        endPage = totalPages;
+      } else {
+        startPage = currentPage - 2;
+        endPage = currentPage + 2;
+      }
+    }
+    
+    return pageNumbers.slice(startPage - 1, endPage);
+  };
 
   const handleContactSeller = (post) => {
     if (!isLoggedIn) {
@@ -67,15 +203,6 @@ export default function HomePage({
     // Navigate to seller profile or show contact modal
     onNavigate("seller-profile", { sellerId: post.sellerId });
     showSuccess("View seller profile to contact");
-  };
-
-  const handleSavePost = (post) => {
-    if (!isLoggedIn) {
-      onStartShopping(); // Redirect to login if not logged in
-      return;
-    }
-
-    showSuccess(`Saved "${post.title}"`);
   };
 
   const handleStartShoppingClick = () => {
@@ -95,7 +222,20 @@ export default function HomePage({
     }
   };
 
-  const categories = ["all", "electronics", "furniture", "fashion", "books"];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await getCategories();
+        const cats = res.result || [];
+        // ensure 'all' first and preserve casing for display
+        setCategories(["all", ...cats]);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <div className="home-page">
@@ -180,6 +320,9 @@ export default function HomePage({
                   selectedCategory.charAt(0).toUpperCase() +
                   selectedCategory.slice(1)
                 } Listings`}
+            <span className="pagination-info">
+              ({filteredPosts.length} total items)
+            </span>
           </h2>
           {!isLoggedIn && (
             <p className="product-notice">Login to browse and list items!</p>
@@ -206,87 +349,150 @@ export default function HomePage({
             )}
           </div>
         ) : (
-          <div className="products-grid">
-            {filteredPosts.map((post) => (
-              <div
-                key={post._id}
-                className="product-card"
-                onClick={() => {
-                  if (isLoggedIn) {
-                    onNavigate("post-details", { post });
-                  } else {
-                    onNavigate("login");
-                  }
-                }}
-                style={{ cursor: "pointer" }}
-              >
-                <div className="product-image">
-                  <img
-                    src={post.images?.[0] || ""}
-                    alt={post.title}
-                    className="product-img"
-                    style={{ display: post.images?.[0] ? "block" : "none" }}
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "flex";
-                    }}
-                  />
-                  <span
-                    className="product-emoji"
-                    style={{ display: post.images?.[0] ? "none" : "flex" }}
-                  >
-                    📦
-                  </span>
-                </div>
-                <div className="product-content">
-                  <h3 className="product-name">{post.title}</h3>
-                  <p className="product-description">
-                    {post.description?.substring(0, 60)}...
-                  </p>
-                  <div className="product-meta">
-                    <span className="category">{post.category}</span>
-                    <span className="rating">
-                      ⭐ {post.likes?.length || 0} likes
+          <>
+            <div className="products-grid">
+              {currentPosts.map((post) => (
+                <div
+                  key={post._id}
+                  className="product-card"
+                  onClick={() => {
+                    if (isLoggedIn) {
+                      onNavigate("post-details", { post });
+                    } else {
+                      onNavigate("login");
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <div className="product-image">
+                    <img
+                      src={post.images?.[0] || ""}
+                      alt={post.title}
+                      className="product-img"
+                      style={{ display: post.images?.[0] ? "block" : "none" }}
+                      onError={(e) => {
+                        e.target.style.display = "none";
+                        e.target.nextSibling.style.display = "flex";
+                      }}
+                    />
+                    <span
+                      className="product-emoji"
+                      style={{ display: post.images?.[0] ? "none" : "flex" }}
+                    >
+                      📦
                     </span>
                   </div>
-                  <div className="product-footer">
-                    {post.price && (
-                      <span className="price">${post.price.toFixed(2)}</span>
-                    )}
-                    <div className="btn-group">
-                      {isLoggedIn && (
-                        <button
-                          className="btn-save"
-                          onClick={() => handleSavePost(post)}
-                          title="Save"
-                        >
-                          💾
-                        </button>
+                  <div className="product-content">
+                    <h3 className="product-name">{post.title}</h3>
+                    <p className="product-description">
+                      {post.description?.substring(0, 60)}...
+                    </p>
+                    <div className="product-meta">
+                      <span className="category">{post.category}</span>
+                      <span className="rating">
+                        ⭐ {post.likes?.length || 0} likes
+                      </span>
+                    </div>
+                    <div className="product-footer">
+                      {post.price && (
+                        <span className="price">${post.price.toFixed(2)}</span>
                       )}
-                      <button
-                        className="btn-contact"
-                        onClick={() => handleContactSeller(post)}
-                        disabled={!isLoggedIn}
-                      >
-                        {!isLoggedIn ? "Login" : "Contact"}
-                      </button>
+                      <div className="btn-group">
+                        <button
+                          className="btn-contact"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleContactSeller(post);
+                          }}
+                          disabled={!isLoggedIn}
+                        >
+                          {!isLoggedIn ? "Login" : "Contact"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  className="pagination-btn prev"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  ← Previous
+                </button>
+                
+                <div className="page-numbers">
+                  {/* Show first page if not in view */}
+                  {currentPage > 3 && totalPages > 5 && (
+                    <>
+                      <button
+                        className={`page-number ${1 === currentPage ? "active" : ""}`}
+                        onClick={() => handlePageChange(1)}
+                      >
+                        1
+                      </button>
+                      <span className="page-ellipsis">...</span>
+                    </>
+                  )}
+                  
+                  {/* Show page numbers */}
+                  {getPageNumbersToShow().map((number) => (
+                    <button
+                      key={number}
+                      className={`page-number ${number === currentPage ? "active" : ""}`}
+                      onClick={() => handlePageChange(number)}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                  
+                  {/* Show last page if not in view */}
+                  {currentPage < totalPages - 2 && totalPages > 5 && (
+                    <>
+                      <span className="page-ellipsis">...</span>
+                      <button
+                        className={`page-number ${totalPages === currentPage ? "active" : ""}`}
+                        onClick={() => handlePageChange(totalPages)}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                <button
+                  className="pagination-btn next"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Page info */}
+            <div className="page-info">
+              Showing {indexOfFirstPost + 1} to{" "}
+              {Math.min(indexOfLastPost, filteredPosts.length)} of{" "}
+              {filteredPosts.length} listings (Page {currentPage} of {totalPages})
+            </div>
+          </>
         )}
       </section>
 
       {/* Stats Section */}
       <section className="stats-section">
         <div className="stat">
-          <div className="stat-number">2M+</div>
+          <div className={`stat-number ${bumpUsers ? "bump" : ""}`}>{formatCompact(activeUsersCount)}</div>
           <div className="stat-label">Active Users</div>
         </div>
         <div className="stat">
-          <div className="stat-number">500K+</div>
+          <div className={`stat-number ${bumpListings ? "bump" : ""}`}>{formatCompact(activeListingsCount)}</div>
           <div className="stat-label">Listings</div>
         </div>
         <div className="stat">
@@ -294,7 +500,7 @@ export default function HomePage({
           <div className="stat-label">Satisfaction</div>
         </div>
         <div className="stat">
-          <div className="stat-number">100K+</div>
+          <div className={`stat-number ${bumpSellers ? "bump" : ""}`}>{formatCompact(activeSellersCount)}</div>
           <div className="stat-label">Active Sellers</div>
         </div>
       </section>
@@ -315,78 +521,8 @@ export default function HomePage({
         </section>
       )}
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h4>Browse</h4>
-            <ul>
-              <li>
-                <a href="#listings">All Listings</a>
-              </li>
-              <li>
-                <a href="#categories">Categories</a>
-              </li>
-              <li>
-                <a href="#deals">Trending</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Sell</h4>
-            <ul>
-              <li>
-                <a
-                  href="#sell"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleCreatePost();
-                  }}
-                >
-                  Create Listing
-                </a>
-              </li>
-              <li>
-                <a href="#seller-guide">Seller Guide</a>
-              </li>
-              <li>
-                <a href="#fees">Fees</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Support</h4>
-            <ul>
-              <li>
-                <a href="#help">Help Center</a>
-              </li>
-              <li>
-                <a href="#contact">Contact</a>
-              </li>
-              <li>
-                <a href="#status">Status</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Legal</h4>
-            <ul>
-              <li>
-                <a href="#privacy">Privacy</a>
-              </li>
-              <li>
-                <a href="#terms">Terms</a>
-              </li>
-              <li>
-                <a href="#security">Security</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2024 Marketplace. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Footer component */}
+      <Footer onCreateListing={handleCreatePost} />
     </div>
   );
 }

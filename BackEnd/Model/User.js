@@ -83,20 +83,7 @@ cart: [
       },
     ],
 
-    // law mesayev 7aga aw wishlist
-    savedPosts: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Post",
-      },
-    ],
-
-    savedProducts: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-      },
-    ],
+    // savedPosts/savedProducts removed — bookmarking removed
 
     // el last seen
     lastActive: {
