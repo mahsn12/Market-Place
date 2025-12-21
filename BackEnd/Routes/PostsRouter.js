@@ -9,6 +9,7 @@ import {
   reportPost,
   boostPost,
   followSeller,
+   getCategories,
   getSellerProfile,
   getPostsBySeller,
   toggleLikePost,
@@ -38,6 +39,7 @@ router.delete("/delete/:id", authMiddleware, deletePost);
 router.get("/all", getAllPosts);
 router.get("/search", searchPosts);
 router.get("/trending", getTrendingPosts);
+router.get("/categories", getCategories);
 
 /* =========================
    POST INTERACTIONS (AUTH)

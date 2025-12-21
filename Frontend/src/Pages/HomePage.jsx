@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
-import { getAllPosts, searchPosts } from "../apis/Postsapi";
+import { getAllPosts, searchPosts, getCategories } from "../apis/Postsapi";
 import { useToast } from "../components/ToastContext";
 
 export default function HomePage({
@@ -14,6 +14,7 @@ export default function HomePage({
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [categories, setCategories] = useState(["all"]);
   const [loading, setLoading] = useState(false);
   const { showSuccess } = useToast();
 
@@ -52,7 +53,10 @@ export default function HomePage({
     let filtered = posts;
 
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.category === selectedCategory);
+      filtered = filtered.filter((p) =>
+        (p.category || "").toString().toLowerCase() ===
+        selectedCategory.toString().toLowerCase()
+      );
     }
 
     setFilteredPosts(filtered);
@@ -95,7 +99,20 @@ export default function HomePage({
     }
   };
 
-  const categories = ["all", "electronics", "furniture", "fashion", "books"];
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await getCategories();
+        const cats = res.result || [];
+        // ensure 'all' first and preserve casing for display
+        setCategories(["all", ...cats]);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <div className="home-page">

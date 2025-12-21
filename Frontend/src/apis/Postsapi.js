@@ -12,6 +12,7 @@ export const searchPosts = (query) =>
   api("/api/posts/search", { params: { q: query } });
 
 export const getTrendingPosts = () => api("/api/posts/trending");
+export const getCategories = () => api("/api/posts/categories");
 
 export const toggleSavePost = (data) =>
   api("/api/posts/save", { method: "PATCH", body: data });

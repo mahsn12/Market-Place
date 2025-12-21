@@ -3,6 +3,16 @@ import Post from "../Model/Post.js";
 import User from "../Model/User.js";
 import mongoose from "mongoose";
 
+// Helpers
+const normalizeCategoryValue = (c) => {
+  if (c === null || c === undefined) return null;
+  return c.toString().trim().toLowerCase() || null;
+};
+
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 // Helper: pagination defaults
 const defaultPage = 1;
 const defaultLimit = 10;
@@ -39,7 +49,7 @@ export const createPost = async (request, response) => {
       description,
       price,
       quantity: quantity ?? 1,
-      category,
+      category: normalizeCategoryValue(category),
       condition,
       location,
     });
@@ -48,6 +58,22 @@ export const createPost = async (request, response) => {
     return response
       .status(201)
       .json({ message: "Post created successfully", result: post });
+  } catch (e) {
+    return response.status(500).json({ message: e.message });
+  }
+};
+
+// Get distinct categories used in posts
+export const getCategories = async (request, response) => {
+  try {
+    // only categories for posts that are available (quantity > 0)
+    const categories = await Post.distinct("category", { quantity: { $gt: 0 }, category: { $ne: null, $ne: "" } });
+    const cleaned = (categories || [])
+      .filter((c) => c && typeof c === "string")
+      .map((c) => c.toLowerCase())
+      .filter((v, i, a) => a.indexOf(v) === i);
+
+    return response.status(200).json({ message: "Categories retrieved", result: cleaned });
   } catch (e) {
     return response.status(500).json({ message: e.message });
   }
@@ -82,7 +108,7 @@ export const updatePost = async (request, response) => {
     if (title) post.title = title;
     if (description) post.description = description;
     if (price !== undefined) post.price = price;
-    if (category) post.category = category;
+    if (category !== undefined) post.category = normalizeCategoryValue(category);
     if (condition) post.condition = condition;
     if (images && Array.isArray(images)) post.images = images;
     if (location) post.location = location;
@@ -115,7 +141,11 @@ export const getAllPosts = async (request, response) => {
 
     const { category, minPrice, maxPrice, sellerId, sort } = request.query;
     const filter = { quantity: { $gt: 0 } };
-    if (category) filter.category = category;
+    if (category) {
+      // make category filter case-insensitive and normalized
+      const c = normalizeCategoryValue(category);
+      if (c) filter.category = { $regex: new RegExp(`^${escapeRegExp(c)}$`, "i") };
+    }
     if (sellerId) filter.sellerId = sellerId;
     if (minPrice)
       filter.price = { ...(filter.price || {}), $gte: Number(minPrice) };
