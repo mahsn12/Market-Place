@@ -369,33 +369,57 @@
 /* Categories */
 .categories {
   display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  /* allow horizontal scrolling on small screens */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Keep categories centered within page width */
+.search-section .categories {
+  /* match products-section width and inner padding so the pills align
+     with the "Featured Listings" header */
+  max-width: 1400px;
+  margin: 0 auto;
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.categories::-webkit-scrollbar {
+  height: 8px;
+}
+.categories::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 8px;
 }
 
 .category-pill {
-  margin-left: 5%;
-  margin-top: 5%;
-  padding: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0.45rem 1rem;
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 2rem;
+  border-radius: 999px;
   color: #565758;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  flex: 0 0 auto; /* prevent shrinking when scrolling */
 }
 
 .category-pill:hover {
   border-color: #667eea;
-  background: #f3f4f6;
+  background: rgba(102,126,234,0.08);
 }
 
 .category-pill.active {
-  background: #000;
+  background: #667eea;
   color: white;
-  border-color: #000;
+  border-color: #667eea;
+  box-shadow: 0 6px 18px rgba(102,126,234,0.14);
 }
 
 /* Products Section */
