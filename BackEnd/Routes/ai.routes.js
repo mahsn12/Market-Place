@@ -6,7 +6,7 @@ const router = express.Router();
 // =====================================
 // PUT YOUR HUGGING FACE TOKEN HERE
 // =====================================
-const HF_API_KEY = "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";
+const HF_API_KEY = "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";
 
 // Free image classification model
 const HF_MODEL_URL =
