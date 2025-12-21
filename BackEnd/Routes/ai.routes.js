@@ -2,13 +2,11 @@ import express from "express";
 import fetch from "node-fetch";
 
 const router = express.Router();
-import dotenv from "dotenv";
-dotenv.config();
 
 // =====================================
 // PUT YOUR HUGGING FACE TOKEN HERE
 // =====================================
-const HF_API_KEY = process.env.ChatgptKey;
+const HF_API_KEY = "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";
 
 // Free image classification model
 const HF_MODEL_URL =
