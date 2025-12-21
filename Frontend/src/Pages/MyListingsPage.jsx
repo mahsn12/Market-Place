@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from "react";
 import "../Style/MyListingsPage.css";
 import { useToast } from "../components/ToastContext";
-import { deletePost } from "../apis/Postsapi";
-import { getPostsBySeller, getSellerProfile } from "../apis/Postsapi";
-import { getSellerOffers, getOfferStats } from "../apis/Offersapi";
+import { deletePost, getPostsBySeller, getSellerProfile } from "../apis/Postsapi";
 
 export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
   const [posts, setPosts] = useState([]);
-  const [offers, setOffers] = useState([]);
   const [stats, setStats] = useState(null);
-  const [offerStats, setOfferStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   const { showSuccess, showError } = useToast();
@@ -25,12 +21,7 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        fetchPosts(),
-        fetchSellerStats(),
-        fetchOffers(),
-        fetchOfferStats(),
-      ]);
+      await Promise.all([fetchPosts(), fetchSellerStats()]);
     } catch (error) {
       console.error("Failed to fetch data:", error);
     } finally {
@@ -63,26 +54,6 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
     }
   };
 
-  const fetchOffers = async () => {
-    try {
-      const response = await getSellerOffers(1, 100);
-      console.log("Offers response:", response);
-      setOffers(response.result || []);
-    } catch (error) {
-      console.error("Failed to fetch offers:", error);
-    }
-  };
-
-  const fetchOfferStats = async () => {
-    try {
-      const response = await getOfferStats();
-      console.log("Offer stats response:", response);
-      setOfferStats(response.result || null);
-    } catch (error) {
-      console.error("Failed to fetch offer stats:", error);
-    }
-  };
-
   const handleDeletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this listing?")) {
       return;
@@ -101,19 +72,14 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
     onNavigate("create-post", { editPost: post });
   };
 
-  const getPostOffers = (postId) => {
-    return offers.filter((offer) => offer.postId?._id === postId);
-  };
-
   const getPostAnalytics = (post) => {
-    const postOffers = getPostOffers(post._id);
     return {
       views: 0, // Placeholder - would need to implement view tracking
       likes: post.likes?.length || 0,
       comments: post.comments?.length || 0,
-      offers: postOffers.length,
-      pendingOffers: postOffers.filter((o) => o.status === "pending").length,
-      acceptedOffers: postOffers.filter((o) => o.status === "accepted").length,
+      offers: 0,
+      pendingOffers: 0,
+      acceptedOffers: 0,
     };
   };
 
@@ -127,11 +93,11 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
       totalPosts: posts.length,
       totalLikes,
       totalComments,
-      totalOffers: offers.length,
+      totalOffers: 0,
       avgLikes,
       avgComments,
-      pendingOffers: offerStats?.pending || 0,
-      acceptedOffers: offerStats?.accepted || 0,
+      pendingOffers: 0,
+      acceptedOffers: 0,
     };
   };
 
@@ -193,16 +159,7 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
             <span className="stat-sub">Avg: {totalAnalytics.avgComments}/listing</span>
           </div>
         </div>
-        <div className="stat-card warning">
-          <div className="stat-icon">💰</div>
-          <div className="stat-content">
-            <span className="stat-value">{totalAnalytics.totalOffers}</span>
-            <span className="stat-label">Total Offers</span>
-            <span className="stat-sub">
-              {totalAnalytics.pendingOffers} pending • {totalAnalytics.acceptedOffers} accepted
-            </span>
-          </div>
-        </div>
+        {/* Offers widget removed */}
       </div>
 
       {/* Listings Table */}
@@ -275,20 +232,7 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
                             {analytics.comments}
                           </span>
                         </div>
-                        <div className="analytics-item">
-                          <span className="analytics-icon">💰</span>
-                          <span className="analytics-value">
-                            {analytics.offers}
-                          </span>
-                        </div>
-                        {analytics.pendingOffers > 0 && (
-                          <div className="analytics-item highlight">
-                            <span className="analytics-icon">⏳</span>
-                            <span className="analytics-value">
-                              {analytics.pendingOffers} pending
-                            </span>
-                          </div>
-                        )}
+                        {/* Offers metrics removed */}
                       </div>
                     </div>
 
@@ -312,14 +256,7 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
                       >
                         👁️ View
                       </button>
-                      {analytics.pendingOffers > 0 && (
-                        <button
-                          className="btn-offers"
-                          onClick={() => onNavigate("offers")}
-                        >
-                          💰 Offers ({analytics.pendingOffers})
-                        </button>
-                      )}
+                      {/* Offers removed */}
                       <button
                         className="btn-delete"
                         onClick={() => handleDeletePost(post._id)}
@@ -339,16 +276,7 @@ export default function MyListingsPage({ user, isLoggedIn, onNavigate }) {
       <div className="quick-actions">
         <h3>Quick Actions</h3>
         <div className="actions-grid">
-          <button
-            className="action-card"
-            onClick={() => onNavigate("offers")}
-          >
-            <span className="action-icon">💰</span>
-            <span className="action-label">View Offers</span>
-            {offerStats?.pending > 0 && (
-              <span className="action-badge">{offerStats.pending}</span>
-            )}
-          </button>
+          {/* Offers action removed (offers page deleted) */}
           <button
             className="action-card"
             onClick={() => onNavigate("messages")}

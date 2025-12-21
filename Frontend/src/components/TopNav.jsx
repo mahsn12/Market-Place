@@ -112,12 +112,7 @@ export default function TopNavbar({
               📊 My Listings
             </button>
 
-            <button
-              className="nav-button offers-button"
-              onClick={() => onNavigate("offers")}
-            >
-              💰 Offers
-            </button>
+            {/* Offers removed */}
 
             <button
               className="nav-button orders-button"

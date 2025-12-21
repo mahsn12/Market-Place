@@ -8,7 +8,6 @@ import OrdersPage from "./Pages/OrdersPage";
 import OrderDetailsPage from "./Pages/OrderDetailsPage";
 import ProfilePage from "./Pages/ProfilePage";
 import MessagesPage from "./Pages/MessagesPage";
-import OffersPage from "./Pages/OffersPage";
 import MyListingsPage from "./Pages/MyListingsPage";
 import TopNav from "./components/TopNav";
 import { ToastProvider } from "./components/ToastContext";
@@ -178,13 +177,7 @@ const handleSearch = (query) => {
                 />
               )}
 
-              {currentPage === "offers" && (
-                <OffersPage
-                  user={user}
-                  isLoggedIn={isLoggedIn}
-                  onNavigate={handleNavigation}
-                />
-              )}
+              {/* Offers page removed */}
 
               {currentPage === "my-listings" && (
                 <MyListingsPage
@@ -218,8 +211,7 @@ const handleSearch = (query) => {
           {!isLoggedIn &&
             (currentPage === "create-post" ||
               currentPage === "my-listings" ||
-              currentPage === "messages" ||
-              currentPage === "offers") && (
+              currentPage === "messages") && (
               <div className="login-required">
                 <h2>Login Required</h2>
                 <p>Please login to access this page</p>
