@@ -74,12 +74,7 @@ const productSchema = new mongoose.Schema(
       default: 0,
     },
 
-    savedBy: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    // savedBy removed — bookmarking removed
 
     reports: [
       {

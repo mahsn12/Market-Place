@@ -5,7 +5,6 @@ import {
   getAllPosts,
   searchPosts,
   getTrendingPosts,
-  toggleSavePost,
   reportPost,
   boostPost,
   followSeller,
@@ -45,7 +44,6 @@ router.get("/categories", getCategories);
    POST INTERACTIONS (AUTH)
 ========================= */
 
-router.patch("/save", authMiddleware, toggleSavePost);
 router.patch("/like", authMiddleware, toggleLikePost);
 router.post("/report", authMiddleware, reportPost);
 router.patch("/boost", authMiddleware, boostPost);

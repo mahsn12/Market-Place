@@ -347,35 +347,7 @@ export const getTrendingPosts = async (request, response) => {
   }
 };
 
-// Save / Bookmark a post (adds userId to post.savedBy array — Post model must have savedBy: [ObjectId])
-export const toggleSavePost = async (request, response) => {
-  try {
-    const { postId } = request.body;
-    const userId = request.user.id;
-    
-    if (!postId) {
-      return response.status(400).json({ message: "postId is required" });
-    }
-
-    const post = await Post.findById(postId);
-    if (!post) return response.status(404).json({ message: "Post not found" });
-
-    const alreadySaved = (post.savedBy || []).some(
-      (id) => id.toString() === userId.toString()
-    );
-
-    if (alreadySaved) post.savedBy.pull(userId);
-    else post.savedBy.push(userId);
-
-    await post.save();
-
-    return response
-      .status(200)
-      .json({ message: alreadySaved ? "Unsaved" : "Saved", result: post });
-  } catch (e) {
-    return response.status(500).json({ message: e.message });
-  }
-};
+// `toggleSavePost` removed: save/bookmark feature deprecated
 
 // Report Post (adds report to post.reports array)
 export const reportPost = async (request, response) => {

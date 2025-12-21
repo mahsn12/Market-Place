@@ -121,13 +121,7 @@ const postSchema = mongoose.Schema(
       },
     ],
 
-    // Saved posts
-    savedBy: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    // savedBy removed — bookmarking removed
 
     // reporting
     reports: [

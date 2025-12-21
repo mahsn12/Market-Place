@@ -102,8 +102,7 @@ export const getProduct = async (req, res) => {
     const { id } = req.params;
 
     const product = await Product.findById(id)
-      .populate("sellerId", "name email profileImage")
-      .populate("savedBy", "_id name"); //hatgeeb el 7agat bta3t el refrence id
+      .populate("sellerId", "name email profileImage");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });

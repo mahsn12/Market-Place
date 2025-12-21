@@ -73,15 +73,6 @@ export default function HomePage({
     showSuccess("View seller profile to contact");
   };
 
-  const handleSavePost = (post) => {
-    if (!isLoggedIn) {
-      onStartShopping(); // Redirect to login if not logged in
-      return;
-    }
-
-    showSuccess(`Saved "${post.title}"`);
-  };
-
   const handleStartShoppingClick = () => {
     if (!isLoggedIn) {
       onStartShopping(); // Go to login
@@ -271,18 +262,12 @@ export default function HomePage({
                       <span className="price">${post.price.toFixed(2)}</span>
                     )}
                     <div className="btn-group">
-                      {isLoggedIn && (
-                        <button
-                          className="btn-save"
-                          onClick={() => handleSavePost(post)}
-                          title="Save"
-                        >
-                          💾
-                        </button>
-                      )}
                       <button
                         className="btn-contact"
-                        onClick={() => handleContactSeller(post)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContactSeller(post);
+                        }}
                         disabled={!isLoggedIn}
                       >
                         {!isLoggedIn ? "Login" : "Contact"}
