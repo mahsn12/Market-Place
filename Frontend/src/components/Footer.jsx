@@ -1,7 +1,7 @@
 import React from "react";
 import "../Style/Footer.css";
 
-export default function Footer() {
+export default function Footer({ onCreateListing }) {
   return (
     <footer className="footer">
       <div className="footer-content">
@@ -22,7 +22,19 @@ export default function Footer() {
               <a href="#products">Products</a>
             </li>
             <li>
-              <a href="#contact">Contact</a>
+              {onCreateListing ? (
+                <a
+                  href="#sell"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCreateListing();
+                  }}
+                >
+                  Create Listing
+                </a>
+              ) : (
+                <a href="#sell">Create Listing</a>
+              )}
             </li>
           </ul>
         </div>

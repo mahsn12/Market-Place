@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import "../Style/HomePage.css";
 import { getAllPosts, searchPosts, getCategories } from "../apis/Postsapi";
 import { useToast } from "../components/ToastContext";
+import Footer from "../components/Footer";
 
 export default function HomePage({
   onNavigate,
@@ -520,77 +521,8 @@ export default function HomePage({
         </section>
       )}
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h4>Browse</h4>
-            <ul>
-              <li>
-                <a href="#listings">All Listings</a>
-              </li>
-              <li>
-                <a href="#categories">Categories</a>
-              </li>
-              <li>
-                <a href="#deals">Trending</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Sell</h4>
-            <ul>
-              <li>
-                <a
-                  href="#sell"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleCreatePost();
-                  }}
-                >
-                  Create Listing</a>
-              </li>
-              <li>
-                <a href="#seller-guide">Seller Guide</a>
-              </li>
-              <li>
-                <a href="#fees">Fees</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Support</h4>
-            <ul>
-              <li>
-                <a href="#help">Help Center</a>
-              </li>
-              <li>
-                <a href="#contact">Contact</a>
-              </li>
-              <li>
-                <a href="#status">Status</a>
-              </li>
-            </ul>
-          </div>
-          <div className="footer-section">
-            <h4>Legal</h4>
-            <ul>
-              <li>
-                <a href="#privacy">Privacy</a>
-              </li>
-              <li>
-                <a href="#terms">Terms</a>
-              </li>
-              <li>
-                <a href="#security">Security</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2024 Marketplace. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Footer component */}
+      <Footer onCreateListing={handleCreatePost} />
     </div>
   );
 }
