@@ -19,6 +19,89 @@ export default function HomePage({
   const [loading, setLoading] = useState(false);
   const { showSuccess } = useToast();
 
+  // Animated stats for UX — simulate active users/listings/sellers
+  // Smaller, believable initial counts for a modest marketplace
+  const [activeUsersCount, setActiveUsersCount] = useState(5200);
+  const [activeListingsCount, setActiveListingsCount] = useState(1200);
+  const [activeSellersCount, setActiveSellersCount] = useState(420);
+  const [bumpUsers, setBumpUsers] = useState(false);
+  const [bumpListings, setBumpListings] = useState(false);
+  const [bumpSellers, setBumpSellers] = useState(false);
+
+  const formatCompact = (n) => {
+    try {
+      return (
+        new Intl.NumberFormat("en", {
+          notation: "compact",
+          compactDisplay: "short",
+          maximumFractionDigits: 1,
+        }).format(n) + "+"
+      );
+    } catch (e) {
+      return String(n);
+    }
+  };
+
+  useEffect(() => {
+    // small fluctuating animation for counters
+    let mounted = true;
+
+    const usersInterval = setInterval(() => {
+      if (!mounted) return;
+      // small realistic fluctuation ±200
+      const delta = Math.floor((Math.random() - 0.5) * 400);
+      setActiveUsersCount((prev) => {
+        const min = 3000;
+        const max = 12000;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpUsers(true);
+      setTimeout(() => setBumpUsers(false), 350);
+    }, 2500 + Math.floor(Math.random() * 2000));
+
+    const listingsInterval = setInterval(() => {
+      if (!mounted) return;
+      // smaller fluctuation ±75
+      const delta = Math.floor((Math.random() - 0.5) * 150);
+      setActiveListingsCount((prev) => {
+        const min = 200;
+        const max = 2500;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpListings(true);
+      setTimeout(() => setBumpListings(false), 350);
+    }, 2200 + Math.floor(Math.random() * 1800));
+
+    const sellersInterval = setInterval(() => {
+      if (!mounted) return;
+      // small fluctuation ±12
+      const delta = Math.floor((Math.random() - 0.5) * 24);
+      setActiveSellersCount((prev) => {
+        const min = 80;
+        const max = 800;
+        let next = prev + delta;
+        if (next < min) next = min + Math.abs(delta);
+        if (next > max) next = max - Math.abs(delta);
+        return next;
+      });
+      setBumpSellers(true);
+      setTimeout(() => setBumpSellers(false), 350);
+    }, 2600 + Math.floor(Math.random() * 2000));
+
+    return () => {
+      mounted = false;
+      clearInterval(usersInterval);
+      clearInterval(listingsInterval);
+      clearInterval(sellersInterval);
+    };
+  }, []);
+
   // Fetch posts on mount or when search is triggered
   useEffect(() => {
     const fetchPosts = async () => {
@@ -301,11 +384,11 @@ export default function HomePage({
       {/* Stats Section */}
       <section className="stats-section">
         <div className="stat">
-          <div className="stat-number">2M+</div>
+          <div className={`stat-number ${bumpUsers ? "bump" : ""}`}>{formatCompact(activeUsersCount)}</div>
           <div className="stat-label">Active Users</div>
         </div>
         <div className="stat">
-          <div className="stat-number">500K+</div>
+          <div className={`stat-number ${bumpListings ? "bump" : ""}`}>{formatCompact(activeListingsCount)}</div>
           <div className="stat-label">Listings</div>
         </div>
         <div className="stat">
@@ -313,7 +396,7 @@ export default function HomePage({
           <div className="stat-label">Satisfaction</div>
         </div>
         <div className="stat">
-          <div className="stat-number">100K+</div>
+          <div className={`stat-number ${bumpSellers ? "bump" : ""}`}>{formatCompact(activeSellersCount)}</div>
           <div className="stat-label">Active Sellers</div>
         </div>
       </section>

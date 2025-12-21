@@ -647,6 +647,12 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-block;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.stat-number.bump {
+  transform: scale(1.08);
 }
 
 .stat-label {
