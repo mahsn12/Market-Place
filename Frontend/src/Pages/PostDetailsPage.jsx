@@ -246,7 +246,14 @@ const handleAddToCart = async () => {
         postId: post._id,
         userId: userId,
       });
-      setPost(response.result);
+      // Backend returns the raw post (sellerId may be an ObjectId)
+      // Preserve any populated `sellerId` object from the current post so UI keeps seller info
+      const updated = response.result || {};
+      const preservedSeller = post.sellerId && typeof post.sellerId === "object" ? post.sellerId : null;
+      if (preservedSeller && (!updated.sellerId || typeof updated.sellerId !== "object")) {
+        updated.sellerId = preservedSeller;
+      }
+      setPost(updated);
       showSuccess(
         response.message === "Post liked"
           ? "Added to your likes!"
