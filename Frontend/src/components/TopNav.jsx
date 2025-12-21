@@ -94,6 +94,14 @@ const handleSearchChange = (e) => {
             >
               💰 Offers
             </button>
+            {/* Orders Button */}
+            <button
+              className="nav-button orders-button"
+              onClick={() => onNavigate("orders")}
+              title="View Orders"
+            >
+              🧾 Orders
+            </button>
                 {/* Cart Button */}
           <button
             className="nav-button cart-button"

@@ -4,6 +4,8 @@ import MarketplaceLogin from "./Pages/LoginPage";
 import RegisterPage from "./Pages/RegisterPage";
 import CreatePostPage from "./Pages/CreatePostPage";
 import PostDetailsPage from "./Pages/PostDetailsPage";
+import OrdersPage from "./Pages/OrdersPage";
+import OrderDetailsPage from "./Pages/OrderDetailsPage";
 import ProfilePage from "./Pages/ProfilePage";
 import MessagesPage from "./Pages/MessagesPage";
 import OffersPage from "./Pages/OffersPage";
@@ -21,6 +23,7 @@ function App() {
   );
 
   const [selectedPost, setSelectedPost] = useState(null);
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("isLoggedIn") === "true"
   );
@@ -35,6 +38,9 @@ function App() {
     setCurrentPage(page);
     if (params?.post) {
       setSelectedPost(params.post);
+    }
+    if (params?.order) {
+      setSelectedOrder(params.order);
     }
     window.scrollTo(0, 0);
     localStorage.setItem("CurrentPage", page);
@@ -140,6 +146,14 @@ const handleSearch = (query) => {
                   user={user}
                   isLoggedIn={isLoggedIn}
                 />
+              )}
+
+              {currentPage === "orders" && (
+                <OrdersPage user={user} onNavigate={handleNavigation} />
+              )}
+
+              {currentPage === "order-details" && selectedOrder && (
+                <OrderDetailsPage order={selectedOrder} onNavigate={handleNavigation} />
               )}
 
               {currentPage === "profile" && (

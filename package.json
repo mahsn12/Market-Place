@@ -1,10 +1,13 @@
 {
   "name": "project-root",
   "private": true,
-  "workspaces": ["BackEnd", "Frontend"],
+  "workspaces": [
+    "BackEnd",
+    "Frontend"
+  ],
   "scripts": {
     "install-all": "npm install",
-    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "cd BackEnd && nodemon server.js",
     "dev:frontend": "cd Frontend && npm run dev",
     "start": "node BackEnd/server.js",
@@ -16,5 +19,8 @@
   },
   "overrides": {
     "semver": "7.5.2"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
   }
 }
