@@ -2,6 +2,8 @@ import express from "express";
 import fetch from "node-fetch";
 
 const router = express.Router();
+import dotenv from "dotenv";
+dotenv.config();
 
 // =====================================
 // PUT YOUR HUGGING FACE TOKEN HERE
