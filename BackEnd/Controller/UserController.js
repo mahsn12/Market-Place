@@ -1,12 +1,10 @@
 import User from "../Model/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 import Product from "../Model/Product.js";
 import Order from "../Model/Order.js";
 import Post from "../Model/Post.js";
 
-dotenv.config();
 
 export const registerUser = async (request, response) => {
   try {
