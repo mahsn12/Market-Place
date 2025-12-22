@@ -79,6 +79,11 @@ function App() {
   const handleNavigation = (page, params = null) => {
     setCurrentPage(page);
 
+    // Clear any active search when navigating back to the homepage
+    if (page === "home") {
+      setSearchQuery("");
+    }
+
     if (params?.post) setSelectedPost(params.post);
     if (params?.order) setSelectedOrder(params.order);
 

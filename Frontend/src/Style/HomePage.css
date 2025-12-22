@@ -14,6 +14,30 @@
   min-height: 600px;
 }
 
+/* Hero description styling (tagline + highlight) */
+.hero-description {
+  font-size: 1.125rem;
+  color: var(--color-muted, #565758);
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0;
+}
+
+.hero-description .hero-tagline {
+  display: block;
+  color: var(--color-text, #334155);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.hero-description .hero-highlight {
+  display: block;
+  color: var(--color-primary, #1E3A8A);
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+
 /* Search bar for top navigation moved to TopNav.css */
 
 

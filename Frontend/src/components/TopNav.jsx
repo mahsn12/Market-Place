@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import "../Style/TopNav.css";
 import { getUnreadCount } from "../apis/Messagesapi";
 
@@ -12,8 +12,7 @@ export default function TopNavbar({
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // debounce timer ref
-  const searchTimeoutRef = useRef(null);
+  // search query state (search will run on form submit)
 
   /* =======================
      Unread messages polling
@@ -43,22 +42,7 @@ export default function TopNavbar({
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-
-    if (!onSearch) return;
-
-    // clear previous debounce
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    // debounce search
-    searchTimeoutRef.current = setTimeout(() => {
-      if (value.trim()) {
-        onSearch(value.trim()); // search with partial letters
-      } else {
-        onSearch(""); // 🔥 clear products when input is empty
-      }
-    }, 400);
+    // Do not call onSearch here — only trigger search when the form is submitted
   };
 
   const handleSearchSubmit = (e) => {

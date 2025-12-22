@@ -248,8 +248,13 @@ export default function HomePage({
             <span className="gradient-text">Buy or Sell locally.</span>
           </h1>
           <p className="hero-description">
-            Discover thousands of listings from your community. Fast, secure,
-            and reliable peer-to-peer marketplace.
+            <span className="hero-tagline">
+              Discover thousands of listings from your community.
+            </span>
+            <span className="hero-highlight">
+              Fast, secure, and reliable peer-to-peer marketplace.
+              
+            </span>
           </p>
           <div className="hero-cta">
             <div className="cta-buttons">
