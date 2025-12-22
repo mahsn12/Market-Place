@@ -6,7 +6,7 @@ const router = express.Router();
 /* =========================
    HUGGING FACE CONFIG
 ========================= */
-const HF_API_KEY = "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";
+const HF_API_KEY = process.env.AIKEY;
 
 const HF_MODEL_URL =
   "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224";
