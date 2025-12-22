@@ -38,7 +38,7 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/orders", orderRoutes);
 
 // ✅ REQUIRED FOR RAILWAY
-const PORT = process.env.PORT || 5200;
+const PORT = process.env.PORT;
 
 try {
   await Database();
