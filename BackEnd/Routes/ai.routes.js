@@ -6,7 +6,14 @@ const router = express.Router();
 /* =========================
    HUGGING FACE CONFIG
 ========================= */
-const HF_API_KEY = process.env.AIKEY;
+router.post("/detect-category", async (req, res) => {
+  try {
+    const HF_API_KEY = process.env.AIKEY;
+
+    if (!HF_API_KEY) {
+      console.error("❌ AIKEY is missing");
+      return res.status(500).json({ message: "AIKEY is missing" });
+    }
 
 const HF_MODEL_URL =
   "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224";
