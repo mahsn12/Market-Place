@@ -10,26 +10,21 @@ import orderRoutes from "./Routes/OrderRouter.js";
 
 const app = express();
 
-// ✅ CORS middleware
-const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
-  : null;
-
+/* =========================
+   CORS (SAFE FOR VERCEL)
+========================= */
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      if (!allowedOrigins || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(new Error("Not allowed by CORS"));
-    },
+    origin: true, // ✅ allow all origins (Vercel friendly)
     credentials: true,
   })
 );
 
 app.use(express.json({ limit: "10mb" }));
 
+/* =========================
+   ROUTES
+========================= */
 app.use("/api/users", userRouter);
 app.use("/api/posts", postRoutes);
 app.use("/api/messages", MessageRouter);
@@ -37,8 +32,10 @@ app.use("/api/offers", OfferRouter);
 app.use("/api/ai", aiRoutes);
 app.use("/api/orders", orderRoutes);
 
-// ✅ REQUIRED FOR RAILWAY
-const PORT = 5200;
+/* =========================
+   RAILWAY REQUIRED
+========================= */
+const PORT = process.env.PORT || 5000;
 
 try {
   await Database();
