@@ -1,6 +1,4 @@
 import jwt from "jsonwebtoken";
-import dot from "dotenv";
-dot.config();
 
 export const authMiddleware = (req, res, next) => {
   try {
