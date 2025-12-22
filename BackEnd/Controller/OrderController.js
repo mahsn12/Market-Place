@@ -245,35 +245,26 @@ export const updateOrderStatus = async (request, response) => {
 
   try {
     const { id } = request.params;
-    const { status, actorId } = request.body;
+    const { status } = request.body;
 
     if (!status) {
-      await session.abortTransaction();
-      session.endSession();
       return response.status(400).json({ message: "status is required" });
     }
 
     const allowed = ["Pending", "Shipped", "Delivered", "Cancelled"];
     if (!allowed.includes(status)) {
-      await session.abortTransaction();
-      session.endSession();
       return response.status(400).json({ message: "Invalid status value" });
     }
 
     const order = await Order.findById(id).session(session);
-    if (!order) throw new Error("Order not found");
-
-    // Permission checks
-    if (status === "Shipped") {
-      if (!actorId || actorId.toString() !== order.sellerId.toString())
-        throw new Error("Only seller can mark as Shipped");
+    if (!order) {
+      return response.status(404).json({ message: "Order not found" });
     }
 
     if (status === "Cancelled") {
-      // restore quantity IN TRANSACTION
       for (const item of order.items) {
         const post = await Post.findById(item.postId).session(session);
-        if (post && typeof post.quantity === "number") {
+        if (post) {
           post.quantity += item.quantity;
           await post.save({ session });
         }
@@ -281,18 +272,26 @@ export const updateOrderStatus = async (request, response) => {
     }
 
     order.status = status;
+
+    // ✅ FIX 1
     order.timeline = order.timeline || [];
-    order.timeline.push({ status, date: new Date(), by: actorId || null });
+
+    // ✅ FIX 2
+    order.timeline.push({
+      status,
+      date: new Date(),
+      by: null,
+    });
+
     await order.save({ session });
 
     await session.commitTransaction();
     session.endSession();
 
-    // emitOrderEvent(order, status);
-
-    return response
-      .status(200)
-      .json({ message: "Order status updated", result: order });
+    return response.status(200).json({
+      message: "Order status updated",
+      result: order,
+    });
   } catch (e) {
     await session.abortTransaction();
     session.endSession();

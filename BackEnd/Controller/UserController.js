@@ -272,6 +272,7 @@ export const loginUser = async (req, res) => {
         ratingCount: userFound.ratingCount,
         cart: userFound.cart,
         lastActive: userFound.lastActive,
+        isAdmin: userFound.isAdmin
       },
     });
   } catch (e) {

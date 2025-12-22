@@ -64,12 +64,15 @@ cart: [
     },
   },
 ],
-
     ratingCount: {
       type: Number,
       default: 0,
     },
 
+      isAdmin: {
+    type: Boolean,
+    default: false,
+    },
     // el verified
     verified: {
       type: Boolean,

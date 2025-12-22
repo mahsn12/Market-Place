@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import HomePage from "./Pages/HomePage";
 import MarketplaceLogin from "./Pages/LoginPage";
 import RegisterPage from "./Pages/RegisterPage";
@@ -12,56 +12,115 @@ import MyListingsPage from "./Pages/MyListingsPage";
 import TopNav from "./components/TopNav";
 import { ToastProvider } from "./components/ToastContext";
 import "./App.css";
-import CartPage from "./Pages/CartPage"; 
+import CartPage from "./Pages/CartPage";
 import SearchResultsPage from "./Pages/SearchResultsPage";
 import CheckoutPage from "./Pages/CheckOutPage";
 
+/* ✅ ADMIN */
+import AdminPage from "./Pages/AdminPage";
+
 function App() {
+  /* =========================
+     STATE
+  ========================= */
+
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("User"));
+    } catch {
+      return null;
+    }
+  });
+
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    localStorage.getItem("isLoggedIn") === "true"
+  );
+
   const [currentPage, setCurrentPage] = useState(
     localStorage.getItem("CurrentPage") || "home"
   );
 
   const [selectedPost, setSelectedPost] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    localStorage.getItem("isLoggedIn") === "true"
-  );
-
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("User")) || null
-  );
   const [searchQuery, setSearchQuery] = useState("");
 
+  const isAdmin = user?.isAdmin === true;
+
+  /* =========================
+     🔥 FIX (CRITICAL)
+     Force admin page AFTER state rehydration
+     This solves the "always goes home" bug
+  ========================= */
+  useEffect(() => {
+    if (isLoggedIn && isAdmin && currentPage === "home") {
+      setCurrentPage("admin");
+      localStorage.setItem("CurrentPage", "admin");
+    }
+  }, [isLoggedIn, isAdmin, currentPage]);
+
+  /* =========================
+     KEEP STATE IN SYNC
+  ========================= */
+
+  useEffect(() => {
+    localStorage.setItem("CurrentPage", currentPage);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("User", JSON.stringify(user));
+    }
+  }, [user]);
+
+  /* =========================
+     NAVIGATION
+  ========================= */
+
   const handleNavigation = (page, params = null) => {
-    console.log("Navigating to:", page, params);
     setCurrentPage(page);
-    if (params?.post) {
-      setSelectedPost(params.post);
-    }
-    if (params?.order) {
-      setSelectedOrder(params.order);
-    }
+
+    if (params?.post) setSelectedPost(params.post);
+    if (params?.order) setSelectedOrder(params.order);
+
     window.scrollTo(0, 0);
-    localStorage.setItem("CurrentPage", page);
   };
+
+  /* =========================
+     LOGIN / LOGOUT
+  ========================= */
 
   const handleLogin = (userData) => {
     setIsLoggedIn(true);
     setUser(userData);
+
     localStorage.setItem("User", JSON.stringify(userData));
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("token", userData.token || "");
-    handleNavigation("home");
+
+    if (userData.isAdmin === true) {
+      localStorage.setItem("CurrentPage", "admin");
+      setCurrentPage("admin");
+    } else {
+      localStorage.setItem("CurrentPage", "home");
+      setCurrentPage("home");
+    }
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUser(null);
+
     localStorage.removeItem("User");
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("token");
-    handleNavigation("home");
+    localStorage.removeItem("CurrentPage");
+
+    setCurrentPage("home");
   };
+
+  /* =========================
+     HELPERS
+  ========================= */
 
   const handleUserUpdate = (updatedUser) => {
     setUser(updatedUser);
@@ -70,24 +129,25 @@ function App() {
 
   const handleStartShopping = () => {
     if (!isLoggedIn) {
-      handleNavigation("login");
+      setCurrentPage("login");
     } else {
-      handleNavigation("home");
+      setCurrentPage("home");
     }
   };
 
-const handleSearch = (query) => {
-  if (!query.trim()) return;
+  const handleSearch = (query) => {
+    if (!query.trim()) return;
+    setSearchQuery(query);
+    setCurrentPage("search");
+  };
 
-  setSearchQuery(query);
-  handleNavigation("search");
-};
-
+  /* =========================
+     RENDER
+  ========================= */
 
   return (
     <ToastProvider>
       <div className="app-container">
-        {/* show TopNav except login/register */}
         {currentPage !== "login" && currentPage !== "register" && (
           <TopNav
             isLoggedIn={isLoggedIn}
@@ -95,27 +155,43 @@ const handleSearch = (query) => {
             onNavigate={handleNavigation}
             onLogout={handleLogout}
             onSearch={handleSearch}
+            isAdmin={isAdmin}
           />
         )}
 
         <main className="main-content">
+          {/* HOME */}
           {currentPage === "home" && (
             <HomePage
               onNavigate={handleNavigation}
               onStartShopping={handleStartShopping}
               isLoggedIn={isLoggedIn}
               user={user}
-              searchQuery={searchQuery || ""}
+              searchQuery={searchQuery}
             />
           )}
 
-          {currentPage === "search" && (
-          <SearchResultsPage
-            query={searchQuery}
-            onNavigate={handleNavigation}
-          />
-        )}
+          {/* ADMIN */}
+          {currentPage === "admin" && isAdmin && (
+            <AdminPage user={user} onNavigate={handleNavigation} />
+          )}
 
+          {currentPage === "admin" && !isAdmin && (
+            <div className="login-required">
+              <h2>Access Denied</h2>
+              <p>Admins only</p>
+            </div>
+          )}
+
+          {/* SEARCH */}
+          {currentPage === "search" && (
+            <SearchResultsPage
+              query={searchQuery}
+              onNavigate={handleNavigation}
+            />
+          )}
+
+          {/* AUTH */}
           {currentPage === "login" && (
             <MarketplaceLogin
               onNavigate={handleNavigation}
@@ -127,7 +203,7 @@ const handleSearch = (query) => {
             <RegisterPage onNavigate={handleNavigation} />
           )}
 
-            {/* Protected pages - only for logged in users */}
+          {/* LOGGED IN PAGES */}
           {isLoggedIn && (
             <>
               {currentPage === "create-post" && (
@@ -152,7 +228,10 @@ const handleSearch = (query) => {
               )}
 
               {currentPage === "order-details" && selectedOrder && (
-                <OrderDetailsPage order={selectedOrder} onNavigate={handleNavigation} />
+                <OrderDetailsPage
+                  order={selectedOrder}
+                  onNavigate={handleNavigation}
+                />
               )}
 
               {currentPage === "profile" && (
@@ -162,22 +241,17 @@ const handleSearch = (query) => {
                   onUserUpdate={handleUserUpdate}
                 />
               )}
-                  {currentPage === "checkout" && (
-                    <CheckoutPage
-                      onNavigate={handleNavigation}
-                      user={user}
-                    />
-                  )}
-                          
 
-              {currentPage === "messages" && (
-                <MessagesPage
+              {currentPage === "checkout" && (
+                <CheckoutPage
+                  onNavigate={handleNavigation}
                   user={user}
-                  isLoggedIn={isLoggedIn}
                 />
               )}
 
-              {/* Offers page removed */}
+              {currentPage === "messages" && (
+                <MessagesPage user={user} isLoggedIn={isLoggedIn} />
+              )}
 
               {currentPage === "my-listings" && (
                 <MyListingsPage
@@ -187,7 +261,6 @@ const handleSearch = (query) => {
                 />
               )}
 
-              {/* ✅ CART PAGE GOES HERE */}
               {currentPage === "cart" && (
                 <CartPage
                   onNavigate={handleNavigation}
@@ -197,44 +270,22 @@ const handleSearch = (query) => {
             </>
           )}
 
-
-          {!isLoggedIn && currentPage === "post-details" && (
-            <PostDetailsPage
-              post={selectedPost}
-              onNavigate={handleNavigation}
-              user={user}
-              isLoggedIn={isLoggedIn}
-            />
-          )}
-
-          {/* If user tries to access protected page without login */}
+          {/* GUEST ACCESS BLOCK */}
           {!isLoggedIn &&
-            (currentPage === "create-post" ||
-              currentPage === "my-listings" ||
-              currentPage === "messages") && (
+            ["create-post", "my-listings", "messages", "profile"].includes(
+              currentPage
+            ) && (
               <div className="login-required">
                 <h2>Login Required</h2>
                 <p>Please login to access this page</p>
                 <button
-                  onClick={() => handleNavigation("login")}
+                  onClick={() => setCurrentPage("login")}
                   className="btn-primary"
                 >
                   Go to Login
                 </button>
               </div>
             )}
-          {!isLoggedIn && currentPage === "profile" && (
-            <div className="login-required">
-              <h2>Login Required</h2>
-              <p>Please login to access this page</p>
-              <button
-                onClick={() => handleNavigation("login")}
-                className="btn-primary"
-              >
-                Go to Login
-              </button>
-            </div>
-          )}
         </main>
       </div>
     </ToastProvider>
