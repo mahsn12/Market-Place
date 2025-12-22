@@ -1,10 +1,11 @@
-const baseURL = "http://localhost:5200";
+const baseURL = "https://backend-production-da05.up.railway.app";
 
 export const api = async (
   path,
   { method = "GET", body = null, params = null } = {}
 ) => {
   let url = baseURL + path;
+
   if (params) {
     const query = new URLSearchParams(params).toString();
     url += "?" + query;
@@ -16,17 +17,21 @@ export const api = async (
     body,
     params,
   });
+
   const headers = {
     "Content-Type": "application/json",
   };
+
   const token = localStorage.getItem("token");
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
+
   const options = {
     method,
     headers,
   };
+
   if (body) {
     options.body = JSON.stringify(body);
   }
@@ -38,13 +43,16 @@ export const api = async (
     try {
       const errorData = await response.json();
       errorMessage = errorData.message || `Error ${response.status}`;
-    } catch (e) {
+    } catch {
       errorMessage = `Error ${response.status}: ${response.statusText}`;
     }
     console.error("❌ API ERROR:", errorMessage);
     throw new Error(errorMessage);
   }
-  
+
+  // ✅ safe for 204 responses
+  if (response.status === 204) return null;
+
   const data = await response.json();
   console.log("✅ API SUCCESS →", data);
   return data;
