@@ -3,37 +3,48 @@ import fetch from "node-fetch";
 
 const router = express.Router();
 
-// =====================================
-// PUT YOUR HUGGING FACE TOKEN HERE
-// =====================================
+/* =========================
+   HUGGING FACE CONFIG
+========================= */
 const HF_API_KEY = process.env.AIKEY;
 
-// Free image classification model
 const HF_MODEL_URL =
   "https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224";
 
+/* =========================
+   ROUTE
+========================= */
 router.post("/detect-category", async (req, res) => {
   try {
+    // 🔒 Ensure API key exists
+    if (!HF_API_KEY) {
+      console.error("❌ AIKEY is missing");
+      return res.status(500).json({ message: "AIKEY is missing" });
+    }
+
     const { images } = req.body;
 
-    if (!images || images.length === 0) {
+    if (!images || !Array.isArray(images) || images.length === 0) {
       return res.status(400).json({ message: "No images provided" });
     }
 
     // Use only the first image
     const img = images[0];
-    const [meta, base64] = img.split(",");
+    const parts = img.split(",");
 
-    if (!base64) {
+    if (parts.length !== 2) {
       return res.status(400).json({ message: "Invalid image format" });
     }
 
-    // Call Hugging Face
+    const base64 = parts[1];
+
+    // 📡 Call Hugging Face
     const response = await fetch(HF_MODEL_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${HF_API_KEY}`,
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         inputs: base64,
@@ -43,17 +54,17 @@ router.post("/detect-category", async (req, res) => {
     const data = await response.json();
 
     if (!Array.isArray(data)) {
-      console.error("HF error:", data);
+      console.error("❌ HF error:", data);
       return res.status(500).json({
         message: "Hugging Face API error",
         data,
       });
     }
 
-    // Top prediction
+    // 🔍 Top prediction
     const topLabel = data[0]?.label?.toLowerCase() || "";
 
-    // Map labels → marketplace categories
+    // 🗂️ Map labels → marketplace categories
     const mapCategory = (label) => {
       if (label.includes("phone") || label.includes("computer"))
         return "electronics";
@@ -83,7 +94,7 @@ router.post("/detect-category", async (req, res) => {
       modelUsed: "google/vit-base-patch16-224",
     });
   } catch (err) {
-    console.error("AI route error:", err);
+    console.error("❌ AI route error:", err);
     return res.status(500).json({ message: "AI detection failed" });
   }
 });
