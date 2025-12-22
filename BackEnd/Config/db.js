@@ -1,7 +1,5 @@
 import mongoose from "mongoose";
-import dot from "dotenv";
 
-dot.config();
 
 // Fail fast if we cannot talk to Mongo instead of buffering
 mongoose.set("bufferCommands", false);
